@@ -1,6 +1,6 @@
 "use client";
 
-import useSWR, { type SWRConfiguration } from "swr";
+import useSWR, { mutate, type SWRConfiguration } from "swr";
 import { getSession, setSession } from "./session";
 
 /** Accepts the backend origin with or without the /api/v1 prefix. */
@@ -21,6 +21,22 @@ export class ApiError extends Error {
 
 type Body = Record<string, unknown> | unknown[] | FormData;
 
+/** Screens built from logged data. After any change, their cached copies are stale. */
+const DAY_DATA = /^\/(dashboard|summaries|weights|meals\?|exercises\?)/;
+
+/**
+ * Drops cached day data so the next screen fetches fresh numbers instead of showing
+ * the old ones first. The summary page updates its own entry after generating.
+ */
+function invalidateDayData(changedPath: string) {
+  const keepSummary = changedPath.startsWith("/summaries");
+  void mutate(
+    (key) => typeof key === "string" && DAY_DATA.test(key) && !(keepSummary && key.startsWith("/summaries")),
+    undefined,
+    { revalidate: true },
+  );
+}
+
 export async function api<T>(path: string, init: { method?: string; body?: Body } = {}): Promise<T> {
   const headers: Record<string, string> = {};
   const token = getSession()?.token;
@@ -40,6 +56,8 @@ export async function api<T>(path: string, init: { method?: string; body?: Body 
   }
 
   if (res.status === 401 && token) setSession(null);
+  const method = init.method ?? (init.body ? "POST" : "GET");
+  if (res.ok && method !== "GET") invalidateDayData(path);
   if (res.status === 204) return undefined as T;
 
   const data: unknown = await res.json().catch(() => null);

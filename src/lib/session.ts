@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { mutate } from "swr";
 import type { Session } from "./types";
 
 const KEY = "pt.session";
@@ -35,6 +36,8 @@ export function getSession(): Session | null {
 }
 
 export function setSession(session: Session | null) {
+  // A different (or no) account: drop every cached response.
+  if (session?.user.id !== getSession()?.user.id) void mutate(() => true, undefined, { revalidate: false });
   try {
     if (session) localStorage.setItem(KEY, JSON.stringify(session));
     else localStorage.removeItem(KEY);
