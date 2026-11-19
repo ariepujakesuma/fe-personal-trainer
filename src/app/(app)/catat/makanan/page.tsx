@@ -47,8 +47,9 @@ function CatatMakanan() {
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
-    if (textMode ? !text.trim() : !file) {
-      setError(textMode ? "Tulis dulu makanannya." : "Pilih atau ambil foto dulu.");
+    // Photo is optional: without one, the note alone is enough for the AI.
+    if (!text.trim() && (textMode || !file)) {
+      setError(textMode ? "Tulis dulu makanannya." : "Pilih foto atau tulis makanannya dulu.");
       return;
     }
     setBusy(true);
@@ -75,7 +76,7 @@ function CatatMakanan() {
 
         {!textMode && (
           <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-semibold">Foto</span>
+            <span className="text-sm font-semibold">Foto (opsional)</span>
             <label
               htmlFor="photo"
               className={`pressable relative flex aspect-[4/3] cursor-pointer items-center justify-center overflow-hidden rounded-[6px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
@@ -109,9 +110,13 @@ function CatatMakanan() {
         )}
 
         <Field
-          label={textMode ? "Makanan apa saja?" : "Catatan (opsional)"}
+          label={textMode ? "Makanan apa saja?" : file ? "Catatan (opsional)" : "Atau tulis makanannya"}
           htmlFor="text"
-          hint={textMode ? "Sebut porsinya kalau bisa, misal \"nasi setengah porsi\"." : "Membantu AI, misal \"nasi setengah porsi, tanpa kuah\"."}
+          hint={
+            textMode || !file
+              ? "Tanpa foto juga bisa. Sebut porsinya kalau bisa, misal \"mangga 3/4 potong\"."
+              : "Membantu AI, misal \"nasi setengah porsi, tanpa kuah\"."
+          }
         >
           <Textarea
             id="text"
