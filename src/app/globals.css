@@ -1,0 +1,116 @@
+@import "tailwindcss";
+@import "@fontsource/barlow/400.css";
+@import "@fontsource/barlow/500.css";
+@import "@fontsource/barlow/600.css";
+@import "@fontsource/barlow-condensed/600.css";
+@import "@fontsource/barlow-condensed/700.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Palette and reasons: DESIGN.md */
+:root {
+  --paper: #f4f2ee;
+  --surface: #ffffff;
+  --ink: #15161a;
+  --muted: #5c5f66;
+  --line: #dad6cf;
+  --accent: #f05312;
+  --on-accent: #15161a;
+  --accent-ink: #b83a00;
+  --danger: #b42318;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --paper: #0e0f12;
+  --surface: #17191d;
+  --ink: #f2f0eb;
+  --muted: #a3a6ad;
+  --line: #2a2d33;
+  --accent: #ff6a2b;
+  --on-accent: #15161a;
+  --accent-ink: #ff8a55;
+  --danger: #ff8a80;
+  color-scheme: dark;
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-danger: var(--danger);
+  --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", ui-sans-serif, sans-serif;
+  --radius-card: 6px;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+  background: var(--paper);
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-sans);
+}
+
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+button,
+a,
+[role="button"],
+label {
+  touch-action: manipulation;
+}
+
+button,
+[role="button"],
+.no-select {
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Scoreboard numerals: the identity motif */
+.numeral {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 0.9;
+  letter-spacing: -0.01em;
+}
+
+/* Press feedback: the only motion in the app (MOTION 1) */
+.pressable {
+  transition:
+    transform 120ms var(--ease-out),
+    background-color 120ms ease,
+    opacity 120ms ease;
+}
+.pressable:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pressable:active:not(:disabled) {
+    transform: none;
+  }
+}
