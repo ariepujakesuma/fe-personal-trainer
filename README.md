@@ -7,7 +7,7 @@ Stack: Next.js 16 (App Router), React 19, Tailwind CSS 4, SWR, Sonner. Arah desa
 ## Setup
 
 ```bash
-cp .env.example .env.local   # NEXT_PUBLIC_API_URL = URL be-personal-trainer + /api/v1
+cp .env.example .env.local   # NEXT_PUBLIC_API_URL = URL be-personal-trainer (dengan atau tanpa /api/v1)
 npm install
 npm run dev -- -p 3001
 ```

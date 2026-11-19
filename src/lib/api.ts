@@ -3,7 +3,11 @@
 import useSWR, { type SWRConfiguration } from "swr";
 import { getSession, setSession } from "./session";
 
-export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api/v1").replace(/\/$/, "");
+/** Accepts the backend origin with or without the /api/v1 prefix. */
+export const API_URL = (() => {
+  const base = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000").replace(/\/+$/, "");
+  return base.endsWith("/api/v1") ? base : `${base}/api/v1`;
+})();
 
 export class ApiError extends Error {
   constructor(
