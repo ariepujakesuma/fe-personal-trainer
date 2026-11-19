@@ -69,7 +69,7 @@ function Editor({ meal }: { meal: Meal }) {
   const [error, setError] = useState<string | null>(null);
 
   const day = localDateOf(meal.eatenAt);
-  const home = day === todayLocal() ? "/" : `/?date=${day}`;
+  const home = day === todayLocal() ? "/hari-ini" : `/hari-ini?date=${day}`;
   const confirmed = meal.status === "confirmed";
 
   useEffect(() => {

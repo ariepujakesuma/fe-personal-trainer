@@ -1,317 +1,318 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
-import { toast } from "sonner";
-import { DateSwitcher } from "@/components/date-switcher";
-import { LaneBar } from "@/components/lane-bar";
-import { Button, ErrorState, LinkButton, LoadingState, Spinner } from "@/components/ui";
-import { api, errorMessage, useApi } from "@/lib/api";
-import { dismissPending, usePendingMeals } from "@/lib/pending-meals";
-import { INTENSITY_LABEL, MEAL_LABEL, fmt, fmt1, isDate, timeLabel, todayLocal } from "@/lib/format";
-import type { DailyDashboard, ExerciseLog, Meal, WeightLog } from "@/lib/types";
+import { useRouter } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+import { ErrorState, LoadingState, Segmented } from "@/components/ui";
+import { errorMessage, useApi } from "@/lib/api";
+import { fmt, fmt1, todayLocal } from "@/lib/format";
+import { bodyShape, bodyShapes, dailyBalance, silhouettePath, simulate, type Point } from "@/lib/projection";
+import type { ProjectionInput, Sex } from "@/lib/types";
 
-export default function TodayPage() {
-  return (
-    <Suspense fallback={<LoadingState />}>
-      <Today />
-    </Suspense>
-  );
+type Period = "7" | "30" | "365";
+const PERIODS: { value: Period; label: string; long: string }[] = [
+  { value: "7", label: "7 hari", long: "7 hari lagi" },
+  { value: "30", label: "30 hari", long: "30 hari lagi" },
+  { value: "365", label: "1 tahun", long: "1 tahun lagi" },
+];
+/** Below this body fat the advice turns into a warning. */
+const FLOOR: Record<Sex, number> = { male: 10, female: 18 };
+
+/** Home: the projection once there is enough data, otherwise the day view. */
+export default function HomePage() {
+  const router = useRouter();
+  const { data, error, isLoading, mutate } = useApi<ProjectionInput>("/dashboard/projection");
+
+  useEffect(() => {
+    if (data && !data.ready) router.replace("/hari-ini");
+  }, [data, router]);
+
+  if (error) return <ErrorState message={errorMessage(error)} onRetry={() => mutate()} />;
+  if (isLoading || !data || !data.ready) return <LoadingState />;
+  return <Projection p={data} />;
 }
 
-function Today() {
-  const params = useSearchParams();
-  const raw = params.get("date");
-  const date = isDate(raw) ? raw : todayLocal();
-  const { data, error, isLoading, mutate } = useApi<DailyDashboard>(`/dashboard/daily?date=${date}`);
-  const q = date === todayLocal() ? "" : `?date=${date}`;
+function Projection({ p }: { p: ProjectionInput }) {
+  const [period, setPeriod] = useState<Period>("30");
+  const now = useMemo(() => simulate(p, false), [p]);
+  const target = useMemo(() => (p.targetDeficit == null ? null : simulate(p, true)), [p]);
+  const meta = PERIODS.find((x) => x.value === period)!;
+  const start = now[0];
+  const end = now[Number(period)];
+  const bfNow = start.bodyFat * 100;
+  const bfEnd = end.bodyFat * 100;
+  const deltaW = end.weightKg - start.weightKg;
 
   return (
     <div className="flex flex-col gap-8">
-      <DateSwitcher date={date} basePath="/" />
-      {isLoading && <LoadingState />}
-      {error && <ErrorState message={errorMessage(error)} onRetry={() => mutate()} />}
-      <PendingAnalyses date={date} />
-      {data && (
-        <>
-          <Scoreboard d={data} />
-          {data.meals.length === 0 && data.exercises.length === 0 ? (
-            <>
-              <EmptyDay q={q} />
-              <WeightRow weight={data.weight} q={q} />
-            </>
-          ) : (
-            <>
-              <PendingMeals meals={data.meals} />
-              <section aria-labelledby="makro" className="flex flex-col gap-4">
-                <h2 id="makro" className="font-display text-2xl font-bold">
-                  Makro
-                </h2>
-                <LaneBar label="Protein" value={data.intake.proteinG} target={data.targets.proteinG} emphasis />
-                <LaneBar label="Karbohidrat" value={data.intake.carbsG} target={data.targets.carbsG} />
-                <LaneBar label="Lemak" value={data.intake.fatG} target={data.targets.fatG} />
-              </section>
-              <MealList meals={data.meals} q={q} />
-              <ExerciseList exercises={data.exercises} q={q} onChange={() => mutate()} />
-              <WeightRow weight={data.weight} q={q} />
-              <LinkButton href={`/summary${q}`} variant="secondary" className="w-full">
-                {data.hasSummary ? "Lihat summary & rekomendasi" : "Buat summary & rekomendasi"}
-              </LinkButton>
-            </>
-          )}
-        </>
-      )}
-    </div>
-  );
-}
-
-/** Meals the AI is still working on: the capture screen no longer waits for it. */
-function PendingAnalyses({ date }: { date: string }) {
-  const pending = usePendingMeals(date);
-  if (!pending.length) return null;
-  return (
-    <ul className="flex flex-col gap-2" aria-live="polite">
-      {pending.map((p) => (
-        <li key={p.id} className="flex min-h-14 items-center gap-3 rounded-[6px] border border-line bg-surface px-4 py-3">
-          {p.status === "processing" ? (
-            <>
-              <Spinner />
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">AI menghitung: {p.label}</span>
-                <span className="text-sm text-muted">Boleh pindah layar. Hasilnya muncul di sini untuk dicek.</span>
-              </span>
-            </>
-          ) : (
-            <>
-              <span className="min-w-0 flex-1" role="alert">
-                <span className="block truncate font-semibold text-danger">Gagal menghitung: {p.label}</span>
-                <span className="text-sm text-muted">{p.error}</span>
-              </span>
-              <Button variant="ghost" className="px-3 text-sm" onClick={() => dismissPending(p.id)}>
-                Tutup
-              </Button>
-            </>
-          )}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function Scoreboard({ d }: { d: DailyDashboard }) {
-  const over = d.remaining < 0;
-  return (
-    <section aria-label="Kalori hari ini" className="flex flex-col gap-4">
-      <div>
-        <p className="font-semibold text-muted">{over ? "Lewat dari target" : "Sisa kalori"}</p>
-        <p className={`numeral text-[clamp(5rem,28vw,8rem)] ${over ? "text-ink" : "text-accent"}`}>
-          {fmt(Math.abs(d.remaining))}
-          <span className="ml-2 font-sans text-xl font-semibold text-muted">kkal</span>
+      <header className="flex flex-col gap-1">
+        <p className="font-display text-lg font-bold text-accent-ink">Proyeksi</p>
+        <h1 className="font-display text-4xl font-bold leading-none">Kalau pola ini terus</h1>
+        <p className="mt-1 text-muted">
+          Dari {p.loggedDays} hari tercatat minggu lalu: makan rata-rata {fmt(p.avgIntake ?? 0)} kkal, olahraga{" "}
+          {fmt(p.avgBurn)} kkal per hari.
         </p>
-      </div>
-      <dl className="grid grid-cols-3 border-y border-line py-3">
-        <Stat label="Target" value={d.targets.calories} />
-        <Stat label="Makan" value={d.intake.calories} sign="−" />
-        <Stat label="Olahraga" value={d.burn} sign="+" />
-      </dl>
-    </section>
-  );
-}
+      </header>
 
-function Stat({ label, value, sign }: { label: string; value: number; sign?: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="numeral text-3xl">
-        {sign && value > 0 && <span className="mr-0.5 text-muted">{sign}</span>}
-        {fmt(value)}
-      </dd>
+      <Segmented name="rentang" legend="Rentang proyeksi" value={period} options={PERIODS} onChange={setPeriod} />
+
+      <section aria-live="polite" className="flex flex-col gap-1">
+        <p className="font-semibold text-muted">Berat badan {meta.long}</p>
+        <p className="numeral text-[clamp(5rem,28vw,7rem)] text-accent">
+          {fmt1(end.weightKg)}
+          <span className="ml-2 font-sans text-xl font-semibold text-muted">kg</span>
+        </p>
+        <p className="text-lg">
+          <strong>
+            {deltaW >= 0 ? "+" : "−"}
+            {fmt1(Math.abs(deltaW))} kg
+          </strong>{" "}
+          dari sekarang ({fmt1(start.weightKg)} kg) · lemak tubuh <strong>{fmt1(bfEnd)}%</strong>
+        </p>
+      </section>
+
+      <BodyShape sex={p.sex} bfNow={bfNow} bfEnd={bfEnd} periodLabel={meta.long} bodyFatDate={p.bodyFatDate} />
+      <Chart now={now} target={target} period={Number(period)} />
+      <Pace p={p} now={now} target={target} period={Number(period)} periodLabel={meta.long} />
+      <Advice p={p} bfEnd={bfEnd} />
+
+      <p className="text-sm text-muted">
+        Perkiraan, bukan jaminan. Kebutuhan kalori ikut turun saat berat turun, jadi laju melambat seiring waktu. Hari
+        yang lupa dicatat lengkap membuat rata-rata makan terlihat lebih kecil.
+      </p>
     </div>
   );
 }
 
-function EmptyDay({ q }: { q: string }) {
+function Figure({ sex, bf, overlayBf, tone }: { sex: Sex; bf: number; overlayBf?: number; tone: "now" | "future" }) {
+  const fill = tone === "now" ? "text-muted opacity-50" : "text-ink";
   return (
-    <section className="flex flex-col gap-4 rounded-[6px] border border-line bg-surface p-5">
-      <h2 className="font-display text-2xl font-bold">Belum ada catatan</h2>
-      <p className="text-muted">Mulai dari makanan terakhirmu. Foto atau tulis saja, AI yang menghitung kalorinya.</p>
-      <div className="flex flex-col gap-2">
-        <LinkButton href={`/catat/makanan${q}`}>Catat makanan</LinkButton>
-        <LinkButton href={`/catat/olahraga${q}`} variant="secondary">
-          Catat olahraga
-        </LinkButton>
-      </div>
-    </section>
+    <svg viewBox="-10 0 140 240" className="h-56 w-auto" aria-hidden>
+      <g className={fill} fill="currentColor" stroke="currentColor" strokeWidth={2} strokeLinejoin="round">
+        <circle cx={60} cy={22} r={13} />
+        <path d={silhouettePath(sex, bf)} />
+      </g>
+      {overlayBf != null && (
+        <path
+          d={silhouettePath(sex, overlayBf)}
+          className="text-accent"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeDasharray="4 3"
+          strokeLinejoin="round"
+        />
+      )}
+    </svg>
   );
 }
 
-function PendingMeals({ meals }: { meals: Meal[] }) {
-  const pending = meals.filter((m) => m.status !== "confirmed");
-  if (!pending.length) return null;
-  return (
-    <Link
-      href={`/makanan?id=${pending[0].id}`}
-      className="pressable flex min-h-14 items-center justify-between gap-3 rounded-[6px] border-2 border-ink bg-surface px-4 py-3"
-    >
-      <span>
-        <span className="block font-semibold">{pending.length} makanan belum dicek</span>
-        <span className="text-sm text-muted">Belum masuk hitungan sampai kamu simpan.</span>
-      </span>
-      <span className="font-display text-lg font-bold text-accent-ink">Cek</span>
-    </Link>
-  );
-}
+function BodyShape({
+  sex,
+  bfNow,
+  bfEnd,
+  periodLabel,
+  bodyFatDate,
+}: {
+  sex: Sex;
+  bfNow: number;
+  bfEnd: number;
+  periodLabel: string;
+  bodyFatDate: string | null;
+}) {
+  const current = bodyShape(sex, bfNow);
+  const future = bodyShape(sex, bfEnd);
+  const bands = bodyShapes(sex);
+  const stale = bodyFatDate && Date.parse(todayLocal()) - Date.parse(bodyFatDate) > 30 * 86400000;
 
-function MealList({ meals, q }: { meals: Meal[]; q: string }) {
   return (
-    <section aria-labelledby="makan" className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <h2 id="makan" className="font-display text-2xl font-bold">
-          Makan
+    <section aria-labelledby="bentuk" className="flex flex-col gap-4">
+      <div className="flex flex-col gap-1">
+        <h2 id="bentuk" className="font-display text-2xl font-bold">
+          Bentuk tubuhmu sekarang: {current.label}
         </h2>
-        <Link href={`/catat/makanan${q}`} className="flex min-h-11 items-center font-semibold text-accent-ink">
-          Tambah
-        </Link>
+        <p className="text-muted">{current.note}</p>
       </div>
-      {meals.length === 0 ? (
-        <p className="text-muted">Belum ada makanan tercatat.</p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-line border-y border-line">
-          {meals.map((m) => (
-            <li key={m.id}>
-              <Link href={`/makanan?id=${m.id}`} className="flex min-h-16 items-center justify-between gap-4 py-3 hover:bg-surface">
-                <span className="min-w-0">
-                  <span className="block font-semibold">
-                    {MEAL_LABEL[m.mealType]} <span className="font-normal text-muted">· {timeLabel(m.eatenAt)}</span>
-                  </span>
-                  <span className="block truncate text-sm text-muted">
-                    {m.status === "needs_manual"
-                      ? "Perlu diisi manual"
-                      : m.items.map((i) => i.name).join(", ") || m.rawText}
-                  </span>
-                </span>
-                <span className="shrink-0 text-right">
-                  <span className="numeral block text-2xl">{fmt(m.totalCalories)}</span>
-                  <span className="text-xs text-muted">{m.status === "confirmed" ? "kkal" : "belum dicek"}</span>
-                </span>
-              </Link>
+
+      <div className="grid grid-cols-2 rounded-[6px] border border-line bg-surface p-4">
+        <figure className="flex flex-col items-center gap-1">
+          <Figure sex={sex} bf={bfNow} tone="now" />
+          <figcaption className="text-center">
+            <span className="block text-sm text-muted">Sekarang</span>
+            <span className="numeral block text-3xl">{fmt1(bfNow)}%</span>
+            <span className="block text-sm text-muted">{current.label}</span>
+          </figcaption>
+        </figure>
+        <figure className="flex flex-col items-center gap-1">
+          <Figure sex={sex} bf={bfEnd} overlayBf={bfNow} tone="future" />
+          <figcaption className="text-center">
+            <span className="block text-sm text-muted">{periodLabel}</span>
+            <span className="numeral block text-3xl text-accent-ink">{fmt1(bfEnd)}%</span>
+            <span className="block text-sm text-muted">{future.label}</span>
+          </figcaption>
+        </figure>
+      </div>
+      <p className="flex items-center gap-2 text-sm text-muted">
+        <span aria-hidden className="inline-block w-4 border-t-2 border-dashed border-accent" />
+        Garis putus-putus: bentuk tubuh sekarang
+      </p>
+
+      <ol aria-label="Kategori lemak tubuh" className="grid grid-cols-5 gap-1">
+        {bands.map((b, i) => {
+          const lo = i === 0 ? 0 : bands[i - 1].max;
+          const range = i === 0 ? `<${b.max}%` : b.max === Infinity ? `${lo}%+` : `${lo}–${b.max - 1}%`;
+          const isNow = i === current.index;
+          const isFuture = i === future.index && future.index !== current.index;
+          return (
+            <li
+              key={b.label}
+              aria-current={isNow ? "true" : undefined}
+              className={`flex min-h-14 flex-col items-center justify-center rounded-[4px] px-1 py-1.5 text-center text-xs leading-tight ${
+                isNow ? "bg-ink text-paper" : isFuture ? "border-2 border-accent" : "border border-line text-muted"
+              }`}
+            >
+              <span className="font-semibold">{b.label}</span>
+              <span>{range}</span>
             </li>
-          ))}
-        </ul>
+          );
+        })}
+      </ol>
+
+      {stale && (
+        <p className="text-sm">
+          Data lemak tubuh terakhir sudah lebih dari 30 hari.{" "}
+          <Link href="/catat/berat?komposisi=1" className="font-semibold text-accent-ink">
+            Timbang lagi
+          </Link>{" "}
+          supaya proyeksi akurat.
+        </p>
       )}
     </section>
   );
 }
 
-function ExerciseList({ exercises, q, onChange }: { exercises: ExerciseLog[]; q: string; onChange: () => void }) {
+function Chart({ now, target, period }: { now: Point[]; target: Point[] | null; period: number }) {
+  const all = [...now, ...(target ?? [])].map((x) => x.weightKg);
+  const hi = Math.ceil(Math.max(...all));
+  const lo = Math.floor(Math.min(...all));
+  const span = Math.max(1, hi - lo);
+  const X = (d: number) => 40 + (d / 365) * 300;
+  const Y = (w: number) => 20 + ((hi - w) / span) * 120;
+  const pts = (arr: Point[]) =>
+    arr
+      .filter((x) => x.day % 5 === 0 || x.day === 365)
+      .map((x) => `${X(x.day).toFixed(1)},${Y(x.weightKg).toFixed(1)}`)
+      .join(" ");
+  const mark = now[period];
+
   return (
-    <section aria-labelledby="olahraga" className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <h2 id="olahraga" className="font-display text-2xl font-bold">
-          Olahraga
-        </h2>
-        <Link href={`/catat/olahraga${q}`} className="flex min-h-11 items-center font-semibold text-accent-ink">
-          Tambah
-        </Link>
-      </div>
-      {exercises.length === 0 ? (
-        <p className="text-muted">Belum ada olahraga tercatat.</p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-line border-y border-line">
-          {exercises.map((e) => (
-            <ExerciseRow key={e.id} e={e} onChange={onChange} />
+    <section aria-labelledby="arah" className="flex flex-col gap-2">
+      <h2 id="arah" className="font-display text-2xl font-bold">
+        Arah berat badan
+      </h2>
+      <svg
+        viewBox="0 0 350 170"
+        className="w-full"
+        role="img"
+        aria-label={`Proyeksi berat dari ${fmt1(now[0].weightKg)} kilogram hari ini ke ${fmt1(now[365].weightKg)} kilogram dalam 1 tahun`}
+      >
+        <g className="text-line" stroke="currentColor">
+          {[20, 80, 140].map((y) => (
+            <line key={y} x1={40} y1={y} x2={340} y2={y} />
           ))}
-        </ul>
-      )}
+        </g>
+        <g className="text-muted" fill="currentColor" fontSize={11}>
+          <text x={34} y={24} textAnchor="end">{hi} kg</text>
+          <text x={34} y={84} textAnchor="end">{fmt((hi + lo) / 2)} kg</text>
+          <text x={34} y={144} textAnchor="end">{lo} kg</text>
+          <text x={40} y={162}>Hari ini</text>
+          <text x={340} y={162} textAnchor="end">1 tahun</text>
+        </g>
+        {target && (
+          <polyline points={pts(target)} className="text-muted" fill="none" stroke="currentColor" strokeWidth={2} strokeDasharray="4 4" />
+        )}
+        <polyline points={pts(now)} className="text-accent" fill="none" stroke="currentColor" strokeWidth={3} />
+        <circle cx={X(period)} cy={Y(mark.weightKg)} r={6} className="fill-accent stroke-paper" strokeWidth={2} />
+      </svg>
+      <div className="flex gap-4 text-sm text-muted">
+        <span className="flex items-center gap-1.5">
+          <span aria-hidden className="inline-block h-[3px] w-4 bg-accent" />
+          Pola sekarang
+        </span>
+        {target && (
+          <span className="flex items-center gap-1.5">
+            <span aria-hidden className="inline-block w-4 border-t-2 border-dashed border-muted" />
+            Kalau ikut target
+          </span>
+        )}
+      </div>
     </section>
   );
 }
 
-function ExerciseRow({ e, onChange }: { e: ExerciseLog; onChange: () => void }) {
-  const [confirming, setConfirming] = useState(false);
-  const [busy, setBusy] = useState(false);
+function Pace({
+  p,
+  now,
+  target,
+  period,
+  periodLabel,
+}: {
+  p: ProjectionInput;
+  now: Point[];
+  target: Point[] | null;
+  period: number;
+  periodLabel: string;
+}) {
+  const perWeek = now[7].weightKg - now[0].weightKg;
+  const pct = (Math.abs(perWeek) / now[0].weightKg) * 100;
+  const note =
+    perWeek > 0.05
+      ? "Naik, sebagian besar jadi lemak"
+      : pct > 1
+        ? "Terlalu cepat, otot ikut hilang"
+        : pct >= 0.25
+          ? "Aman untuk turun lemak sambil jaga otot"
+          : "Hampir tetap";
+  return (
+    <dl className="grid grid-cols-2 border-y border-line">
+      <div className="flex flex-col gap-0.5 border-r border-line py-3 pr-3">
+        <dt className="text-sm text-muted">Laju</dt>
+        <dd className="numeral text-2xl">
+          {perWeek >= 0 ? "+" : "−"}
+          {fmt1(Math.abs(perWeek))} kg/minggu
+        </dd>
+        <dd className="text-sm text-muted">{note}</dd>
+      </div>
+      <div className="flex flex-col gap-0.5 py-3 pl-3">
+        <dt className="text-sm text-muted">Kalau ikut target {fmt(p.targetCalories)} kkal</dt>
+        <dd className="numeral text-2xl">{target ? `${fmt1(target[period].weightKg)} kg` : "–"}</dd>
+        <dd className="text-sm text-muted">{periodLabel}</dd>
+      </div>
+    </dl>
+  );
+}
 
-  async function remove() {
-    if (!confirming) return setConfirming(true);
-    setBusy(true);
-    try {
-      await api(`/exercises/${e.id}`, { method: "DELETE" });
-      toast.success(`${e.name} dihapus`);
-      onChange();
-    } catch (err) {
-      toast.error(errorMessage(err));
-      setBusy(false);
-    }
+function Advice({ p, bfEnd }: { p: ProjectionInput; bfEnd: number }) {
+  const balance = Math.round(dailyBalance(p) / 10) * 10;
+  let title: string;
+  let body: string;
+  if (balance > 50) {
+    title = `Surplus rata-rata ${fmt(balance)} kkal per hari`;
+    body = `Berat dan lemak tubuh ikut naik. Kurangi asupan sekitar ${fmt(balance + (p.targetDeficit ?? 0))} kkal per hari untuk kembali ke target.`;
+  } else if (bfEnd < FLOOR[p.sex]) {
+    title = "Lemak tubuh akan terlalu rendah";
+    body = `Dengan pola ini lemak tubuh turun di bawah ${FLOOR[p.sex]}%. Naikkan asupan sebelum sampai ke sana.`;
+  } else if (balance > -50) {
+    title = "Kalori masuk dan keluar hampir seimbang";
+    body = "Berat cenderung tetap. Kalau ingin turun lemak, ikuti target kalori harian di layar Hari ini.";
+  } else {
+    title = `Defisit rata-rata ${fmt(-balance)} kkal per hari`;
+    body = `Pertahankan protein ${fmt(p.targetProteinG)} g per hari dan latihan beban 3x seminggu supaya yang turun lemak, bukan otot.`;
   }
-
   return (
-    <li className="flex min-h-16 items-center justify-between gap-3 py-3">
-      <span className="min-w-0">
-        <span className="block truncate font-semibold">{e.name}</span>
-        <span className="text-sm text-muted">
-          {e.durationMin} menit · {INTENSITY_LABEL[e.intensity]}
-          {e.distanceKm ? ` · ${fmt1(e.distanceKm)} km` : ""}
-        </span>
-      </span>
-      <span className="flex shrink-0 items-center gap-2">
-        <span className="text-right">
-          <span className="numeral block text-2xl">{fmt(e.caloriesBurned)}</span>
-          <span className="text-xs text-muted">kkal</span>
-        </span>
-        <Button
-          variant={confirming ? "danger" : "ghost"}
-          className="px-3 text-sm"
-          busy={busy}
-          onClick={remove}
-          onBlur={() => setConfirming(false)}
-          aria-label={confirming ? `Yakin hapus ${e.name}` : `Hapus ${e.name}`}
-        >
-          {confirming ? "Yakin?" : "Hapus"}
-        </Button>
-      </span>
-    </li>
-  );
-}
-
-function WeightRow({ weight, q }: { weight: WeightLog | null; q: string }) {
-  const brief = weight
-    ? [
-        weight.bodyFatPct != null && `Lemak ${fmt1(weight.bodyFatPct)}%`,
-        weight.muscleKg != null && `Otot ${fmt1(weight.muscleKg)} kg`,
-        weight.visceralFat != null && `Visceral ${fmt1(weight.visceralFat)}`,
-      ].filter(Boolean)
-    : [];
-  const compHref = `/catat/berat${q ? `${q}&` : "?"}komposisi=1`;
-  return (
-    <section aria-labelledby="berat" className="flex flex-col gap-2 border-y border-line py-3">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 id="berat" className="font-display text-2xl font-bold">
-            Berat badan
-          </h2>
-          {weight ? (
-            <p className="numeral text-3xl">
-              {fmt1(weight.weightKg)} <span className="font-sans text-base font-semibold text-muted">kg</span>
-            </p>
-          ) : (
-            <p className="text-muted">Belum ditimbang hari ini.</p>
-          )}
-        </div>
-        <LinkButton href={`/catat/berat${q}`} variant="secondary">
-          {weight ? "Ubah" : "Catat"}
-        </LinkButton>
-      </div>
-      {brief.length > 0 ? (
-        <Link href={compHref} className="flex min-h-11 items-center justify-between gap-3 text-sm">
-          <span className="text-muted">{brief.join(" · ")}</span>
-          <span className="font-semibold text-accent-ink">Komposisi tubuh</span>
-        </Link>
-      ) : (
-        <Link href={compHref} className="flex min-h-11 items-center font-semibold text-accent-ink">
-          + Komposisi tubuh dari timbangan pintar
-        </Link>
-      )}
+    <section className="flex flex-col gap-1.5 rounded-[6px] border-2 border-ink p-4">
+      <h2 className="font-semibold">{title}</h2>
+      <p className="text-muted">{body}</p>
     </section>
   );
 }

@@ -60,7 +60,7 @@ function CatatMakanan() {
       label: text.trim() ? text.trim().slice(0, 40) : MEAL_LABEL[mealType].toLowerCase(),
       onOpen: (id) => router.push(`/makanan?id=${id}`),
     });
-    router.push(`/${q}`);
+    router.push(`/hari-ini${q}`);
   }
 
   return (

@@ -30,7 +30,7 @@ function Berat() {
 
   return (
     <>
-      <PageHeader title="Berat & komposisi" back={openComp ? `/${q}` : `/catat${q}`} />
+      <PageHeader title="Berat & komposisi" back={openComp ? `/hari-ini${q}` : `/catat${q}`} />
       {/* Render the form only after history loads so a late load never resets what the user typed. */}
       {isLoading && <LoadingState />}
       {(data || error) && (
@@ -39,7 +39,7 @@ function Berat() {
           date={date}
           current={current}
           openComp={openComp}
-          onSaved={() => router.push(`/${q}`)}
+          onSaved={() => router.push(`/hari-ini${q}`)}
         />
       )}
 

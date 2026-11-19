@@ -90,7 +90,7 @@ function Olahraga() {
         },
       });
       toast.success(`${log.name}: ${fmt(log.caloriesBurned)} kkal terbakar`);
-      router.push(`/${q}`);
+      router.push(`/hari-ini${q}`);
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);

@@ -3,15 +3,21 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
+import { useApi } from "@/lib/api";
 import { useSession } from "@/lib/session";
+import type { ProjectionInput } from "@/lib/types";
 import { LoadingState } from "./ui";
 
-const NAV = [
-  { href: "/", label: "Hari ini" },
+type NavItem = { href: string; label: string; primary?: boolean };
+
+const NAV: NavItem[] = [
+  { href: "/hari-ini", label: "Hari ini" },
   { href: "/catat", label: "Catat", primary: true },
   { href: "/summary", label: "Summary" },
   { href: "/profil", label: "Profil" },
-] as const;
+];
+/** Shown first once the projection has enough data (body fat + a logged day). */
+const PROJECTION: NavItem = { href: "/", label: "Proyeksi" };
 
 function isActive(pathname: string, href: string) {
   return href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -23,6 +29,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const onboarding = pathname.startsWith("/onboarding");
+  const { data: projection } = useApi<ProjectionInput>(session?.hasProfile ? "/dashboard/projection" : null);
+  const nav = projection?.ready ? [PROJECTION, ...NAV] : NAV;
 
   useEffect(() => {
     if (session === null) router.replace("/login");
@@ -47,16 +55,19 @@ export function AppShell({ children }: { children: ReactNode }) {
           aria-label="Navigasi utama"
           className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-paper pb-[env(safe-area-inset-bottom,0px)]"
         >
-          <ul className="mx-auto grid max-w-lg grid-cols-4 gap-1 px-3 py-2">
-            {NAV.map((item) => {
+          <ul
+            className="mx-auto grid max-w-lg gap-1 px-3 py-2"
+            style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}
+          >
+            {nav.map((item) => {
               const active = isActive(pathname, item.href);
               return (
                 <li key={item.href}>
                   <Link
                     href={item.href}
                     aria-current={active ? "page" : undefined}
-                    className={`pressable no-select flex min-h-12 items-center justify-center rounded-[6px] font-display [transition-property:transform] text-lg font-bold leading-none ${
-                      "primary" in item
+                    className={`pressable no-select flex min-h-12 items-center justify-center rounded-[6px] font-display [transition-property:transform] ${nav.length > 4 ? "text-base" : "text-lg"} font-bold leading-none ${
+                      item.primary
                         ? "bg-accent text-on-accent"
                         : active
                           ? "bg-ink text-paper"

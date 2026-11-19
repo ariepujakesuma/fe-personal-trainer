@@ -159,3 +159,25 @@ export interface DailySummary {
   aiModel: string | null;
   generatedAt: string;
 }
+
+export type Sex = "male" | "female";
+
+/** GET /dashboard/projection: averages of the last 7 complete days. */
+export interface ProjectionInput {
+  ready: boolean;
+  missing: ("bodyComposition" | "meals")[];
+  sex: Sex;
+  age: number;
+  heightCm: number;
+  activityFactor: number;
+  weightKg: number | null;
+  weightDate: string | null;
+  bodyFatPct: number | null;
+  bodyFatDate: string | null;
+  loggedDays: number;
+  avgIntake: number | null;
+  avgBurn: number;
+  targetCalories: number;
+  targetDeficit: number | null;
+  targetProteinG: number;
+}
