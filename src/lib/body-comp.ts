@@ -12,17 +12,19 @@ export const BODY_COMP: {
   min: number;
   max: number;
   int?: boolean;
+  /** Other unit some scales use (InBody: litres of water, kg of protein); converted to % of weight. */
+  alt?: string;
 }[] = [
   { key: "visceralFat", label: "Lemak visceral", scale: "Visceral Fat", unit: "level", min: 1, max: 60 },
   { key: "bmi", label: "BMI", scale: "BMI", unit: "", min: 10, max: 80 },
   { key: "muscleKg", label: "Otot", scale: "Muscle", unit: "kg", min: 5, max: 150 },
-  { key: "waterPct", label: "Air", scale: "Water", unit: "%", min: 20, max: 80 },
+  { key: "waterPct", label: "Air", scale: "Water", unit: "%", min: 20, max: 80, alt: "L" },
   { key: "obesityDegreePct", label: "Derajat obesitas", scale: "Obesity Degree", unit: "%", min: -60, max: 200 },
   { key: "bmrKcal", label: "Metabolisme", scale: "Metabolism", unit: "kkal", min: 500, max: 5000, int: true },
   { key: "metabolicAge", label: "Usia tubuh", scale: "Actual Age", unit: "tahun", min: 10, max: 100, int: true },
   { key: "bodyFatPct", label: "Lemak tubuh", scale: "Fat", unit: "%", min: 2, max: 75 },
   { key: "leanMassKg", label: "Berat tanpa lemak", scale: "Weight Without Fat", unit: "kg", min: 10, max: 250 },
-  { key: "proteinPct", label: "Protein", scale: "Protein", unit: "%", min: 3, max: 35 },
+  { key: "proteinPct", label: "Protein", scale: "Protein", unit: "%", min: 3, max: 35, alt: "kg" },
   { key: "boneMassKg", label: "Massa tulang", scale: "Bone Mass", unit: "kg", min: 0.5, max: 10 },
 ];
 
