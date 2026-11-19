@@ -50,6 +50,12 @@ export function dayLabel(date: string): string {
   );
 }
 
+/** dayLabel, plus the year when it is not this year. */
+export function dateLabel(date: string): string {
+  const label = dayLabel(date);
+  return date.slice(0, 4) === todayLocal().slice(0, 4) ? label : `${label} ${date.slice(0, 4)}`;
+}
+
 export function timeLabel(iso: string): string {
   return new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit", timeZone: TIME_ZONE }).format(new Date(iso));
 }

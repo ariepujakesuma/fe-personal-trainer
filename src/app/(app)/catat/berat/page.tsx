@@ -6,8 +6,8 @@ import { Suspense, useEffect, useRef, useState, type ComponentProps, type FormEv
 import { toast } from "sonner";
 import { Button, ErrorState, Field, Input, LoadingState, PageHeader } from "@/components/ui";
 import { ApiError, api, errorMessage, useApi } from "@/lib/api";
-import { BODY_COMP, hasBodyComp, parseReading, readingError } from "@/lib/body-comp";
-import { dayLabel, fmt1, isDate, shiftDate, todayLocal } from "@/lib/format";
+import { BODY_COMP, compBrief, hasBodyComp, parseReading, readingError } from "@/lib/body-comp";
+import { dateLabel, dayLabel, fmt1, isDate, shiftDate, todayLocal } from "@/lib/format";
 import type { WeightLog } from "@/lib/types";
 
 export default function BeratPage() {
@@ -92,6 +92,8 @@ function WeightForm({
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string | null>>({});
   const [showComp, setShowComp] = useState(openComp || hasBodyComp(current));
+  const lastComp = useApi<{ log: WeightLog | null }>("/weights/composition/latest").data?.log;
+  const showLast = lastComp && lastComp.date.slice(0, 10) !== date && !hasBodyComp(current);
   // Fields switched to their alternative unit (litres / kg), and what is typed in them.
   const [altOn, setAltOn] = useState<Record<string, boolean>>({});
   const [altText, setAltText] = useState<Record<string, string>>({});
@@ -219,6 +221,13 @@ function WeightForm({
         )}
         {/* Kept mounted while hidden so typed values are not lost. */}
         <div id="komposisi" hidden={!showComp} className="p-4">
+          {showLast && (
+            <p className="mb-4 rounded-[4px] bg-paper p-3 text-sm">
+              <span className="block font-semibold">Terakhir diukur {dateLabel(lastComp.date.slice(0, 10))}</span>
+              <span className="block text-muted">{compBrief(lastComp).join(" · ")}</span>
+              <span className="block text-muted">Data ini tetap dipakai untuk proyeksi sampai kamu isi yang baru.</span>
+            </p>
+          )}
           <div className="grid grid-cols-2 gap-x-3 gap-y-4">
             {BODY_COMP.map((f) => (
               <div key={f.key} className="flex flex-col gap-1.5">

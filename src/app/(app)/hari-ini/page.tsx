@@ -9,7 +9,8 @@ import { LaneBar } from "@/components/lane-bar";
 import { Button, ErrorState, LinkButton, LoadingState, Spinner } from "@/components/ui";
 import { api, errorMessage, useApi } from "@/lib/api";
 import { dismissPending, usePendingMeals } from "@/lib/pending-meals";
-import { INTENSITY_LABEL, MEAL_LABEL, fmt, fmt1, isDate, timeLabel, todayLocal } from "@/lib/format";
+import { INTENSITY_LABEL, MEAL_LABEL, dateLabel, fmt, fmt1, isDate, timeLabel, todayLocal } from "@/lib/format";
+import { compBrief } from "@/lib/body-comp";
 import { bodyShape } from "@/lib/projection";
 import type { DailyDashboard, ExerciseLog, Meal, ProjectionInput, WeightLog } from "@/lib/types";
 
@@ -305,6 +306,8 @@ function ExerciseRow({ e, onChange }: { e: ExerciseLog; onChange: () => void }) 
 
 function WeightRow({ weight, q }: { weight: WeightLog | null; q: string }) {
   const sex = useApi<ProjectionInput>("/dashboard/projection").data?.sex;
+  const last = useApi<{ log: WeightLog | null }>("/weights/composition/latest").data?.log;
+  const showLast = !weight?.bodyFatPct && last && last.date.slice(0, 10) !== weight?.date.slice(0, 10);
   const brief = weight
     ? [
         weight.bodyFatPct != null && `Lemak ${fmt1(weight.bodyFatPct)}%`,
@@ -333,6 +336,12 @@ function WeightRow({ weight, q }: { weight: WeightLog | null; q: string }) {
           {weight ? "Ubah" : "Catat"}
         </LinkButton>
       </div>
+      {showLast && (
+        <p className="text-sm text-muted">
+          Komposisi terakhir ({dateLabel(last.date.slice(0, 10))}): {compBrief(last).join(" · ")}
+          {last.bodyFatPct != null && sex && ` · Bentuk tubuh: ${bodyShape(sex, last.bodyFatPct).label}`}
+        </p>
+      )}
       {brief.length > 0 ? (
         <Link href={compHref} className="flex min-h-11 items-center justify-between gap-3 text-sm">
           <span className="text-muted">{brief.join(" · ")}</span>

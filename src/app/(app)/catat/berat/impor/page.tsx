@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button, PageHeader, Select } from "@/components/ui";
 import { api, errorMessage } from "@/lib/api";
 import { TARGETS, guessTarget, parseCsv, prepareRows, type Target } from "@/lib/csv-import";
-import { dayLabel, fmt, fmt1 } from "@/lib/format";
+import { dateLabel, fmt, fmt1 } from "@/lib/format";
 
 interface Parsed {
   name: string;
@@ -49,7 +49,9 @@ export default function ImporPage() {
     setBusy(true);
     try {
       const res = await api<{ imported: number }>("/weights/import", { body: { rows: prepared.rows } });
-      toast.success(`${fmt(res.imported)} hari data timbangan diimpor`);
+      const first = dateLabel(prepared.rows[0].date);
+      const last = dateLabel(prepared.rows.at(-1)!.date);
+      toast.success(`${fmt(res.imported)} hari diimpor (${first === last ? first : `${first} sampai ${last}`})`);
       router.push("/catat/berat");
     } catch (err) {
       toast.error(errorMessage(err));
@@ -131,8 +133,8 @@ export default function ImporPage() {
                   <p>
                     <strong>{fmt(prepared.rows.length)} hari</strong> siap diimpor
                     {prepared.rows.length > 0 &&
-                      ` (${dayLabel(prepared.rows[0].date)}${
-                        prepared.rows.length > 1 ? ` sampai ${dayLabel(prepared.rows.at(-1)!.date)}` : ""
+                      ` (${dateLabel(prepared.rows[0].date)}${
+                        prepared.rows.length > 1 ? ` sampai ${dateLabel(prepared.rows.at(-1)!.date)}` : ""
                       })`}
                     . Data di tanggal yang sama akan diperbarui.
                   </p>
@@ -141,7 +143,7 @@ export default function ImporPage() {
                       {prepared.rows.slice(-5).map((r) => (
                         <li key={r.date} className="flex min-h-12 items-center justify-between gap-3 py-2">
                           <span>
-                            <span className="block text-muted">{dayLabel(r.date)}</span>
+                            <span className="block text-muted">{dateLabel(r.date)}</span>
                             <span className="text-sm">
                               {[
                                 r.bodyFatPct != null && `Lemak ${fmt1(r.bodyFatPct)}%`,

@@ -32,6 +32,17 @@ export function hasBodyComp(w: Partial<BodyComp> | null | undefined): boolean {
   return !!w && BODY_COMP.some((f) => w[f.key] != null);
 }
 
+/** Short list of the readings people look at first. */
+export function compBrief(w: Partial<BodyComp>): string[] {
+  const one = (n: number) => String(Math.round(n * 10) / 10).replace(".", ",");
+  return [
+    w.bodyFatPct != null && `Lemak ${one(w.bodyFatPct)}%`,
+    w.muscleKg != null && `Otot ${one(w.muscleKg)} kg`,
+    w.waterPct != null && `Air ${one(w.waterPct)}%`,
+    w.visceralFat != null && `Visceral ${one(w.visceralFat)}`,
+  ].filter(Boolean) as string[];
+}
+
 const fmtNum = (n: number) => String(n).replace(".", ",");
 
 /** Parses a typed value ("57,6", "−5"). Empty means "no reading". */
