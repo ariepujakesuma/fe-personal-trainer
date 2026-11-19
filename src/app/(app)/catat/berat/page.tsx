@@ -1,11 +1,11 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState, type FormEvent } from "react";
+import { Suspense, useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button, ErrorState, Field, Input, LoadingState, PageHeader } from "@/components/ui";
 import { ApiError, api, errorMessage, useApi } from "@/lib/api";
-import { BODY_COMP, hasBodyComp } from "@/lib/body-comp";
+import { BODY_COMP, hasBodyComp, parseReading, readingError } from "@/lib/body-comp";
 import { dayLabel, fmt1, isDate, shiftDate, todayLocal } from "@/lib/format";
 import type { WeightLog } from "@/lib/types";
 
@@ -17,17 +17,11 @@ export default function BeratPage() {
   );
 }
 
-const parseNum = (v: FormDataEntryValue | null) => {
-  const s = String(v ?? "")
-    .trim()
-    .replace(",", ".")
-    .replace("−", "-");
-  return s === "" ? null : Number(s);
-};
-
 function Berat() {
   const router = useRouter();
-  const raw = useSearchParams().get("date");
+  const params = useSearchParams();
+  const raw = params.get("date");
+  const openComp = params.get("komposisi") === "1";
   const date = isDate(raw) ? raw : todayLocal();
   const q = date === todayLocal() ? "" : `?date=${date}`;
   const { data, error, isLoading, mutate } = useApi<WeightLog[]>(`/weights?from=${shiftDate(date, -29)}&to=${date}`);
@@ -36,11 +30,17 @@ function Berat() {
 
   return (
     <>
-      <PageHeader title="Berat badan" back={`/catat${q}`} />
+      <PageHeader title="Berat & komposisi" back={openComp ? `/${q}` : `/catat${q}`} />
       {/* Render the form only after history loads so a late load never resets what the user typed. */}
       {isLoading && <LoadingState />}
       {(data || error) && (
-        <WeightForm key={current?.id ?? "new"} date={date} current={current} onSaved={() => router.push(`/${q}`)} />
+        <WeightForm
+          key={current?.id ?? "new"}
+          date={date}
+          current={current}
+          openComp={openComp}
+          onSaved={() => router.push(`/${q}`)}
+        />
       )}
 
       <section aria-labelledby="riwayat" className="mt-10 flex flex-col gap-3">
@@ -61,28 +61,66 @@ function Berat() {
   );
 }
 
-function WeightForm({ date, current, onSaved }: { date: string; current?: WeightLog; onSaved: () => void }) {
+/** Number input with its unit shown inside the field, so "kg" vs "%" is never a guess. */
+function UnitInput({ unit, ...props }: ComponentProps<typeof Input> & { unit: string }) {
+  return (
+    <div className="relative">
+      <Input {...props} className={`${props.className ?? ""} ${unit ? "pr-14" : ""}`} />
+      {unit && (
+        <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted" aria-hidden>
+          {unit}
+        </span>
+      )}
+    </div>
+  );
+}
+
+const WEIGHT_FIELD = { key: "weightKg", label: "Berat", scale: "Weight", unit: "kg", min: 25, max: 350 } as const;
+
+function WeightForm({
+  date,
+  current,
+  openComp,
+  onSaved,
+}: {
+  date: string;
+  current?: WeightLog;
+  openComp: boolean;
+  onSaved: () => void;
+}) {
   const [busy, setBusy] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [showComp, setShowComp] = useState(hasBodyComp(current));
+  const [errors, setErrors] = useState<Record<string, string | null>>({});
+  const [showComp, setShowComp] = useState(openComp || hasBodyComp(current));
+  const compRef = useRef<HTMLDivElement>(null);
+
+  // Arriving from "+ Komposisi tubuh": go straight to the first reading.
+  useEffect(() => {
+    if (!openComp) return;
+    compRef.current?.scrollIntoView({ block: "start" });
+    compRef.current?.querySelector("input")?.focus({ preventScroll: true });
+  }, [openComp]);
+
+  const check = (key: string, text: string) => {
+    const field = key === "weightKg" ? WEIGHT_FIELD : BODY_COMP.find((f) => f.key === key)!;
+    setErrors((e) => ({ ...e, [key]: readingError(field, text) }));
+  };
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const weightKg = parseNum(f.get("weightKg"));
-    const next: Record<string, string> = {};
-    if (weightKg == null || Number.isNaN(weightKg) || weightKg < 25 || weightKg > 350) {
-      next.weightKg = "Isi berat antara 25 dan 350 kg.";
-    }
+    const text = (k: string) => String(f.get(k) ?? "");
+    const next: Record<string, string | null> = {};
+    const weightKg = parseReading(text("weightKg"));
+    next.weightKg = weightKg == null ? "Isi berat badan dulu" : readingError(WEIGHT_FIELD, text("weightKg"));
     const comp: Record<string, number | null> = {};
     for (const field of BODY_COMP) {
-      const v = parseNum(f.get(field.key));
-      if (v != null && Number.isNaN(v)) next[field.key] = "Harus berupa angka";
-      comp[field.key] = v;
+      next[field.key] = readingError(field, text(field.key));
+      comp[field.key] = parseReading(text(field.key));
     }
     setErrors(next);
-    if (Object.keys(next).length) {
-      if (Object.keys(next).some((k) => k !== "weightKg")) setShowComp(true);
+    const bad = Object.entries(next).filter(([, v]) => v);
+    if (bad.length) {
+      if (bad.some(([k]) => k !== "weightKg")) setShowComp(true);
       return;
     }
 
@@ -107,49 +145,78 @@ function WeightForm({ date, current, onSaved }: { date: string; current?: Weight
 
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
-      <Field label={`Berat ${dayLabel(date).toLowerCase()} (kg)`} htmlFor="weightKg" error={errors.weightKg}>
-        <Input
+      <Field label={`Berat ${dayLabel(date).toLowerCase()}`} htmlFor="weightKg" error={errors.weightKg}>
+        <UnitInput
           id="weightKg"
           name="weightKg"
+          unit="kg"
           inputMode="decimal"
           defaultValue={value("weightKg")}
           placeholder="70,5"
+          onBlur={(e) => e.target.value && check("weightKg", e.target.value)}
+          onChange={() => errors.weightKg && setErrors((x) => ({ ...x, weightKg: null }))}
           className="numeral h-16 text-4xl"
         />
       </Field>
 
-      <section className="rounded-[6px] border border-line">
-        <button
-          type="button"
-          aria-expanded={showComp}
-          aria-controls="komposisi"
-          onClick={() => setShowComp((s) => !s)}
-          className="flex min-h-14 w-full items-center justify-between gap-3 px-4 text-left"
-        >
-          <span>
-            <span className="block font-semibold">Komposisi tubuh</span>
-            <span className="text-sm text-muted">Opsional, salin dari aplikasi timbangan pintar</span>
-          </span>
-          <span className="font-display text-lg font-bold text-accent-ink">{showComp ? "Tutup" : "Isi"}</span>
-        </button>
-        {/* Kept mounted while collapsed so typed values are not lost. */}
-        <div id="komposisi" hidden={!showComp} className="border-t border-line p-4">
+      <section className="rounded-[6px] border border-line" ref={compRef}>
+        {showComp ? (
+          <div className="flex min-h-14 items-center justify-between gap-3 px-4 pt-2">
+            <span>
+              <span className="block font-display text-xl font-bold">Komposisi tubuh</span>
+              <span className="text-sm text-muted">Salin dari aplikasi timbangan, semua opsional</span>
+            </span>
+            <button
+              type="button"
+              aria-expanded
+              aria-controls="komposisi"
+              onClick={() => setShowComp(false)}
+              className="min-h-11 px-2 text-sm font-semibold text-muted"
+            >
+              Sembunyikan
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            aria-expanded={false}
+            aria-controls="komposisi"
+            onClick={() => setShowComp(true)}
+            className="pressable flex min-h-16 w-full flex-col justify-center px-4 py-3 text-left"
+          >
+            <span className="font-semibold text-accent-ink">+ Isi komposisi tubuh</span>
+            <span className="text-sm text-muted">11 data dari timbangan pintar, semua opsional</span>
+          </button>
+        )}
+        {/* Kept mounted while hidden so typed values are not lost. */}
+        <div id="komposisi" hidden={!showComp} className="p-4">
           <div className="grid grid-cols-2 gap-x-3 gap-y-4">
             {BODY_COMP.map((f) => (
-              <Field
-                key={f.key}
-                label={f.unit ? `${f.label} (${f.unit})` : f.label}
-                htmlFor={f.key}
-                error={errors[f.key]}
-              >
-                <Input
+              <div key={f.key} className="flex flex-col gap-1.5">
+                {/* Second line = the scale app's own label, so fields match while copying. */}
+                <label htmlFor={f.key} className="flex flex-col">
+                  <span className="text-sm font-semibold">{f.label}</span>
+                  <span className="truncate text-xs text-muted" title={f.scale}>
+                    {f.scale}
+                  </span>
+                </label>
+                <UnitInput
                   id={f.key}
                   name={f.key}
-                  inputMode={f.key === "obesityDegreePct" ? "text" : f.int ? "numeric" : "decimal"}
+                  unit={f.unit === "level" ? "" : f.unit}
+                  inputMode={f.min < 0 ? "text" : f.int ? "numeric" : "decimal"}
                   defaultValue={value(f.key)}
-                  placeholder={f.hint}
+                  onBlur={(e) => check(f.key, e.target.value)}
+                  onChange={() => errors[f.key] && setErrors((x) => ({ ...x, [f.key]: null }))}
+                  aria-invalid={errors[f.key] ? true : undefined}
+                  aria-describedby={errors[f.key] ? `${f.key}-error` : undefined}
                 />
-              </Field>
+                {errors[f.key] && (
+                  <p id={`${f.key}-error`} className="text-sm text-danger" role="alert">
+                    {errors[f.key]}
+                  </p>
+                )}
+              </div>
             ))}
           </div>
           <p className="mt-4 text-sm text-muted">Kosongkan yang tidak ada di timbanganmu.</p>

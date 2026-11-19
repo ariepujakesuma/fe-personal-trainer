@@ -1,20 +1,49 @@
 import type { BodyComp } from "./types";
 
-/** Smart-scale readings in the order the user listed them. Units match the backend validation. */
-export const BODY_COMP: { key: keyof BodyComp; label: string; unit: string; int?: boolean; hint: string }[] = [
-  { key: "visceralFat", label: "Lemak visceral", unit: "level", hint: "1–60" },
-  { key: "bmi", label: "BMI", unit: "", hint: "10–80" },
-  { key: "muscleKg", label: "Massa otot", unit: "kg", hint: "5–150" },
-  { key: "waterPct", label: "Air", unit: "%", hint: "20–80" },
-  { key: "obesityDegreePct", label: "Derajat obesitas", unit: "%", hint: "−60–200" },
-  { key: "bmrKcal", label: "Metabolisme", unit: "kkal", int: true, hint: "500–5000" },
-  { key: "metabolicAge", label: "Usia tubuh", unit: "tahun", int: true, hint: "10–100" },
-  { key: "bodyFatPct", label: "Lemak tubuh", unit: "%", hint: "2–75" },
-  { key: "leanMassKg", label: "Berat tanpa lemak", unit: "kg", hint: "10–250" },
-  { key: "proteinPct", label: "Protein", unit: "%", hint: "3–35" },
-  { key: "boneMassKg", label: "Massa tulang", unit: "kg", hint: "0,5–10" },
+/**
+ * Smart-scale readings in the order the scale app lists them. `scale` is the label shown
+ * in the scale app, so the user can match fields while copying. Ranges mirror the backend.
+ */
+export const BODY_COMP: {
+  key: keyof BodyComp;
+  label: string;
+  scale: string;
+  unit: string;
+  min: number;
+  max: number;
+  int?: boolean;
+}[] = [
+  { key: "visceralFat", label: "Lemak visceral", scale: "Visceral Fat", unit: "level", min: 1, max: 60 },
+  { key: "bmi", label: "BMI", scale: "BMI", unit: "", min: 10, max: 80 },
+  { key: "muscleKg", label: "Otot", scale: "Muscle", unit: "kg", min: 5, max: 150 },
+  { key: "waterPct", label: "Air", scale: "Water", unit: "%", min: 20, max: 80 },
+  { key: "obesityDegreePct", label: "Derajat obesitas", scale: "Obesity Degree", unit: "%", min: -60, max: 200 },
+  { key: "bmrKcal", label: "Metabolisme", scale: "Metabolism", unit: "kkal", min: 500, max: 5000, int: true },
+  { key: "metabolicAge", label: "Usia tubuh", scale: "Actual Age", unit: "tahun", min: 10, max: 100, int: true },
+  { key: "bodyFatPct", label: "Lemak tubuh", scale: "Fat", unit: "%", min: 2, max: 75 },
+  { key: "leanMassKg", label: "Berat tanpa lemak", scale: "Weight Without Fat", unit: "kg", min: 10, max: 250 },
+  { key: "proteinPct", label: "Protein", scale: "Protein", unit: "%", min: 3, max: 35 },
+  { key: "boneMassKg", label: "Massa tulang", scale: "Bone Mass", unit: "kg", min: 0.5, max: 10 },
 ];
 
 export function hasBodyComp(w: Partial<BodyComp> | null | undefined): boolean {
   return !!w && BODY_COMP.some((f) => w[f.key] != null);
+}
+
+const fmtNum = (n: number) => String(n).replace(".", ",");
+
+/** Parses a typed value ("57,6", "−5"). Empty means "no reading". */
+export function parseReading(text: string): number | null {
+  const s = text.trim().replace(",", ".").replace("−", "-");
+  return s === "" ? null : Number(s);
+}
+
+/** Same checks as the backend, so mistakes show while typing instead of after saving. */
+export function readingError(field: { min: number; max: number; int?: boolean }, text: string): string | null {
+  const v = parseReading(text);
+  if (v == null) return null;
+  if (Number.isNaN(v)) return "Harus berupa angka";
+  if (field.int && !Number.isInteger(v)) return "Harus bilangan bulat";
+  if (v < field.min || v > field.max) return `Antara ${fmtNum(field.min)} dan ${fmtNum(field.max)}`;
+  return null;
 }

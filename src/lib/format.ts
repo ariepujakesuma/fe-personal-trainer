@@ -9,6 +9,12 @@ export const MEAL_LABEL: Record<MealType, string> = {
   snack: "Snack",
 };
 
+/** Short labels for the meal-time picker. */
+export const MEAL_OPTIONS = (Object.keys(MEAL_LABEL) as MealType[]).map((v) => ({
+  value: v,
+  label: v === "breakfast" ? "Pagi" : v === "lunch" ? "Siang" : v === "dinner" ? "Malam" : "Snack",
+}));
+
 export const INTENSITY_LABEL: Record<Intensity, string> = {
   light: "Ringan",
   moderate: "Sedang",
