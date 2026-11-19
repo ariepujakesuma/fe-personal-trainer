@@ -105,6 +105,26 @@ export interface ExerciseDraft {
   source: "ai_parsed";
 }
 
+export interface BodyComp {
+  bmi: number | null;
+  bodyFatPct: number | null;
+  visceralFat: number | null;
+  muscleKg: number | null;
+  waterPct: number | null;
+  obesityDegreePct: number | null;
+  bmrKcal: number | null;
+  metabolicAge: number | null;
+  leanMassKg: number | null;
+  proteinPct: number | null;
+  boneMassKg: number | null;
+}
+
+export interface WeightLog extends BodyComp {
+  id: string;
+  date: string;
+  weightKg: number;
+}
+
 export interface DailyDashboard {
   date: string;
   goal: Goal;
@@ -116,6 +136,7 @@ export interface DailyDashboard {
   meals: Meal[];
   exercises: ExerciseLog[];
   weightKg: number | null;
+  weight: WeightLog | null;
   hasSummary: boolean;
   hasAnyLog: boolean;
 }

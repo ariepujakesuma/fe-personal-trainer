@@ -9,7 +9,7 @@ import { LaneBar } from "@/components/lane-bar";
 import { Button, ErrorState, LinkButton, LoadingState } from "@/components/ui";
 import { api, errorMessage, useApi } from "@/lib/api";
 import { INTENSITY_LABEL, MEAL_LABEL, fmt, fmt1, isDate, timeLabel, todayLocal } from "@/lib/format";
-import type { DailyDashboard, ExerciseLog, Meal } from "@/lib/types";
+import type { DailyDashboard, ExerciseLog, Meal, WeightLog } from "@/lib/types";
 
 export default function TodayPage() {
   return (
@@ -37,7 +37,7 @@ function Today() {
           {data.meals.length === 0 && data.exercises.length === 0 ? (
             <>
               <EmptyDay q={q} />
-              <WeightRow weightKg={data.weightKg} q={q} />
+              <WeightRow weight={data.weight} q={q} />
             </>
           ) : (
             <>
@@ -52,7 +52,7 @@ function Today() {
               </section>
               <MealList meals={data.meals} q={q} />
               <ExerciseList exercises={data.exercises} q={q} onChange={() => mutate()} />
-              <WeightRow weightKg={data.weightKg} q={q} />
+              <WeightRow weight={data.weight} q={q} />
               <LinkButton href={`/summary${q}`} variant="secondary" className="w-full">
                 {data.hasSummary ? "Lihat summary & rekomendasi" : "Buat summary & rekomendasi"}
               </LinkButton>
@@ -239,23 +239,33 @@ function ExerciseRow({ e, onChange }: { e: ExerciseLog; onChange: () => void }) 
   );
 }
 
-function WeightRow({ weightKg, q }: { weightKg: number | null; q: string }) {
+function WeightRow({ weight, q }: { weight: WeightLog | null; q: string }) {
+  const brief = weight
+    ? [
+        weight.bodyFatPct != null && `Lemak ${fmt1(weight.bodyFatPct)}%`,
+        weight.muscleKg != null && `Otot ${fmt1(weight.muscleKg)} kg`,
+        weight.visceralFat != null && `Visceral ${fmt1(weight.visceralFat)}`,
+      ].filter(Boolean)
+    : [];
   return (
     <section aria-labelledby="berat" className="flex items-center justify-between gap-3 border-y border-line py-3">
-      <div>
+      <div className="min-w-0">
         <h2 id="berat" className="font-display text-2xl font-bold">
           Berat badan
         </h2>
-        {weightKg ? (
-          <p className="numeral text-3xl">
-            {fmt1(weightKg)} <span className="font-sans text-base font-semibold text-muted">kg</span>
-          </p>
+        {weight ? (
+          <>
+            <p className="numeral text-3xl">
+              {fmt1(weight.weightKg)} <span className="font-sans text-base font-semibold text-muted">kg</span>
+            </p>
+            {brief.length > 0 && <p className="text-sm text-muted">{brief.join(" · ")}</p>}
+          </>
         ) : (
           <p className="text-muted">Belum ditimbang hari ini.</p>
         )}
       </div>
       <LinkButton href={`/catat/berat${q}`} variant="secondary">
-        {weightKg ? "Ubah" : "Catat"}
+        {weight ? "Ubah" : "Catat"}
       </LinkButton>
     </section>
   );

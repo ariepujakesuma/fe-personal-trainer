@@ -23,7 +23,7 @@ function Catat() {
   const others = [
     { href: withMode("text"), title: "Tulis makanan", desc: "Tidak sempat foto? Ketik saja, misal \"nasi padang rendang\"." },
     { href: `/catat/olahraga${q}`, title: "Olahraga", desc: "Pilih dari daftar atau ceritakan, AI yang merapikan." },
-    { href: `/catat/berat${q}`, title: "Berat badan", desc: "Dipakai untuk menghitung kalori olahraga dan target." },
+    { href: `/catat/berat${q}`, title: "Berat badan", desc: "Plus komposisi tubuh dari timbangan pintar, kalau ada." },
   ];
 
   return (
