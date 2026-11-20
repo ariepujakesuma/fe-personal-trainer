@@ -32,7 +32,6 @@ function Latihan() {
     <>
       <PageHeader
         title="Latihan"
-        back={`/catat${q}`}
         action={
           data?.plan && (
             <Link href="/latihan/program" className="flex min-h-11 items-center font-semibold text-accent-ink">
@@ -66,6 +65,7 @@ function Latihan() {
 
 function Week({ week, today }: { week: NonNullable<TrainingToday["week"]>; today: string }) {
   return (
+    <div className="flex flex-col gap-1.5">
     <ol aria-label="Jadwal minggu ini" className="grid grid-cols-7 gap-1">
       {week.map((d) => {
         const wd = WEEKDAYS.find((w) => w.value === new Date(`${d.date}T00:00:00Z`).getUTCDay())!;
@@ -106,6 +106,10 @@ function Week({ week, today }: { week: NonNullable<TrainingToday["week"]>; today
         );
       })}
     </ol>
+      <p aria-hidden className="text-xs text-muted">
+        B = latihan beban · L = lari · ✓ = selesai
+      </p>
+    </div>
   );
 }
 

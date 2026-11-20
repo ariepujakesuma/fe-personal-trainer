@@ -298,7 +298,12 @@ function WeightForm({
               </div>
             ))}
           </div>
-          <p className="mt-4 text-sm text-muted">Kosongkan yang tidak ada di timbanganmu.</p>
+          <p className="mt-4 text-sm text-muted">
+            Kosongkan yang tidak ada di timbanganmu. Punya file ekspor InBody atau aplikasi timbangan?{" "}
+            <Link href="/catat/berat/impor" className="font-semibold text-accent-ink">
+              Impor CSV
+            </Link>
+          </p>
         </div>
       </section>
 

@@ -13,14 +13,17 @@ type NavItem = { href: string; label: string; primary?: boolean };
 const NAV: NavItem[] = [
   { href: "/hari-ini", label: "Hari ini" },
   { href: "/catat", label: "Catat", primary: true },
-  { href: "/summary", label: "Summary" },
+  { href: "/latihan", label: "Latihan" },
   { href: "/profil", label: "Profil" },
 ];
 /** Shown first once the projection has enough data (body fat + a logged day). */
 const PROJECTION: NavItem = { href: "/", label: "Proyeksi" };
 
 function isActive(pathname: string, href: string) {
-  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+  if (href === "/") return pathname === "/";
+  // Summary and meal review are opened from Hari ini, so that tab stays lit.
+  if (href === "/hari-ini") return ["/hari-ini", "/summary", "/makanan"].some((p) => pathname.startsWith(p));
+  return pathname.startsWith(href);
 }
 
 /** Guards signed-in screens and renders the bottom tab bar. */

@@ -20,8 +20,18 @@ export function RepeatMeals({ date, mealType, onLogged }: { date: string; mealTy
   async function log(m: RecentMeal) {
     setBusyId(m.id);
     try {
-      await api(`/meals/${m.id}/repeat`, { body: { mealType, eatenAt: eatenAtFor(date) } });
-      toast.success(`${MEAL_LABEL[mealType]} dicatat: ${names(m)} (${fmt(m.totalCalories)} kkal)`);
+      const created = await api<{ id: string }>(`/meals/${m.id}/repeat`, { body: { mealType, eatenAt: eatenAtFor(date) } });
+      // One tap logs straight away, so a mis-tap needs an equally quick way back.
+      toast.success(`${MEAL_LABEL[mealType]} dicatat: ${names(m)} (${fmt(m.totalCalories)} kkal)`, {
+        duration: 8000,
+        action: {
+          label: "Batalkan",
+          onClick: () =>
+            api(`/meals/${created.id}`, { method: "DELETE" })
+              .then(() => toast("Dibatalkan"))
+              .catch((err) => toast.error(errorMessage(err))),
+        },
+      });
       onLogged();
     } catch (err) {
       toast.error(errorMessage(err));

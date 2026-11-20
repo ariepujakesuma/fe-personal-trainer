@@ -33,8 +33,12 @@ export function TrendChart({ logs, end, days, goalKg }: { logs: WeightLog[]; end
   });
 
   const start = shiftDate(end, -(days - 1));
-  const goal = m === "weightKg" && goalKg != null ? goalKg : null;
-  const values = pts.map((p) => p.v).concat(goal ?? []);
+  const data = pts.map((p) => p.v);
+  const goalAll = m === "weightKg" && goalKg != null ? goalKg : null;
+  // A far-away target would flatten the trend into a line; then it is named instead of drawn.
+  const goal =
+    goalAll != null && data.length && goalAll > Math.min(...data) - 4 && goalAll < Math.max(...data) + 4 ? goalAll : null;
+  const values = data.concat(goal ?? []);
   const hi = values.length ? Math.ceil(Math.max(...values) + 0.5) : 1;
   const lo = values.length ? Math.floor(Math.min(...values) - 0.5) : 0;
   const X = (date: string) => 40 + ((dayNum(date) - dayNum(start)) / (days - 1)) * 300;
@@ -121,6 +125,11 @@ export function TrendChart({ logs, end, days, goalKg }: { logs: WeightLog[]; end
               strokeLinejoin="round"
             />
           </svg>
+          {goalAll != null && goal == null && (
+            <p className="text-sm text-muted">
+              Target {fmt1(goalAll)} kg, {fmt1(Math.abs(latest!.v - goalAll))} kg lagi dari rata-rata sekarang.
+            </p>
+          )}
           <div className="flex gap-4 text-sm text-muted">
             <span className="flex items-center gap-1.5">
               <span aria-hidden className="inline-block size-2 rounded-full bg-muted opacity-60" />

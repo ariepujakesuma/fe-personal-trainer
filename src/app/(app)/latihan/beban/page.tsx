@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button, ErrorState, Input, LinkButton, LoadingState, PageHeader } from "@/components/ui";
 import { api, errorMessage, useApi } from "@/lib/api";
@@ -49,17 +49,66 @@ function initialRows(e: TodayExercise): Row[] {
   return Array.from({ length: e.target.sets }, () => ({ weight, value: String(e.target.value) }));
 }
 
+/**
+ * A session takes an hour and the phone sleeps in between; on iOS the PWA may reload. The
+ * draft is kept per day and session so nothing typed is lost.
+ */
+const draftKey = (date: string, s: { programId: string; sessionKey: string }) =>
+  `pt.workout.${date}.${s.programId}.${s.sessionKey}`;
+
+function readDraft(key: string): { rows: Row[][]; duration: string } | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 function Session({ s, date, q }: { s: NonNullable<TrainingToday["strength"]>; date: string; q: string }) {
   const router = useRouter();
-  const [rows, setRows] = useState<Row[][]>(() => s.exercises.map(initialRows));
-  const [duration, setDuration] = useState(String(Math.max(30, s.exercises.reduce((n, e) => n + e.target.sets, 0) * 4)));
+  const key = draftKey(date, s);
+  const [draft] = useState(() => readDraft(key));
+  const [rows, setRows] = useState<Row[][]>(() =>
+    draft?.rows.length === s.exercises.length ? draft.rows : s.exercises.map(initialRows),
+  );
+  const [duration, setDuration] = useState(
+    draft?.duration ?? String(Math.max(30, s.exercises.reduce((n, e) => n + e.target.sets, 0) * 4)),
+  );
+
+  // Saved only once something is typed, so "continuing" never shows for an untouched session.
+  const [touched, setTouched] = useState(Boolean(draft));
+  useEffect(() => {
+    if (!touched) return;
+    try {
+      localStorage.setItem(key, JSON.stringify({ rows, duration }));
+    } catch {
+      // Private mode or full storage: the session still works, only without the safety net.
+    }
+  }, [key, rows, duration, touched]);
+
+  function reset() {
+    setRows(s.exercises.map(initialRows));
+    setTouched(false);
+    try {
+      localStorage.removeItem(key);
+    } catch {}
+  }
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const setCell = (i: number, j: number, patch: Partial<Row>) =>
+  const setCell = (i: number, j: number, patch: Partial<Row>) => {
+    setTouched(true);
     setRows((r) => r.map((sets, a) => (a !== i ? sets : sets.map((row, b) => (b === j ? { ...row, ...patch } : row)))));
-  const addSet = (i: number) => setRows((r) => r.map((sets, a) => (a === i ? [...sets, { ...sets[sets.length - 1] }] : sets)));
-  const removeSet = (i: number) => setRows((r) => r.map((sets, a) => (a === i && sets.length > 1 ? sets.slice(0, -1) : sets)));
+  };
+  const addSet = (i: number) => {
+    setTouched(true);
+    setRows((r) => r.map((sets, a) => (a === i ? [...sets, { ...sets[sets.length - 1] }] : sets)));
+  };
+  const removeSet = (i: number) => {
+    setTouched(true);
+    setRows((r) => r.map((sets, a) => (a === i && sets.length > 1 ? sets.slice(0, -1) : sets)));
+  };
 
   async function save() {
     const minutes = num(duration);
@@ -77,6 +126,9 @@ function Session({ s, date, q }: { s: NonNullable<TrainingToday["strength"]>; da
       await api("/training/strength", {
         body: { date, programId: s.programId, sessionKey: s.sessionKey, durationMin: Math.round(minutes), exercises },
       });
+      try {
+        localStorage.removeItem(key);
+      } catch {}
       toast.success(`${s.title} tercatat. Target sesi berikutnya sudah diperbarui.`);
       router.push(`/latihan${q}`);
     } catch (err) {
@@ -90,8 +142,16 @@ function Session({ s, date, q }: { s: NonNullable<TrainingToday["strength"]>; da
       <PageHeader title={s.title} back={`/latihan${q}`} />
       <p className="-mt-2 mb-6 text-sm text-muted">
         Angka sudah diisi dengan target. Ubah sesuai yang benar-benar kamu lakukan; kosongkan repetisi untuk set yang
-        dilewati.
+        dilewati. Isian tersimpan otomatis kalau aplikasi tertutup.
       </p>
+      {draft && (
+        <p className="-mt-4 mb-6 flex flex-wrap items-center gap-x-3 text-sm">
+          Melanjutkan isian sebelumnya.
+          <button type="button" onClick={reset} className="min-h-11 font-semibold text-accent-ink">
+            Mulai dari target lagi
+          </button>
+        </p>
+      )}
       <div className="flex flex-col gap-8">
         {s.exercises.map((e, i) => (
           <section key={e.lift} aria-labelledby={`ex-${e.lift}`} className="flex flex-col gap-2">
@@ -157,7 +217,10 @@ function Session({ s, date, q }: { s: NonNullable<TrainingToday["strength"]>; da
 
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-semibold">Durasi latihan (menit)</span>
-          <Input inputMode="numeric" value={duration} onChange={(e) => setDuration(e.target.value)} />
+          <Input inputMode="numeric" value={duration} onChange={(e) => {
+              setTouched(true);
+              setDuration(e.target.value);
+            }} />
           <span className="text-sm text-muted">Untuk menghitung kalori yang terbakar.</span>
         </label>
 
