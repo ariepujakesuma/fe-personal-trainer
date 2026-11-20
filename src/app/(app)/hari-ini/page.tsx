@@ -11,6 +11,7 @@ import { api, errorMessage, useApi } from "@/lib/api";
 import { dismissPending, usePendingMeals } from "@/lib/pending-meals";
 import { INTENSITY_LABEL, MEAL_LABEL, dateLabel, fmt, fmt1, isDate, timeLabel, todayLocal } from "@/lib/format";
 import { compBrief } from "@/lib/body-comp";
+import type { TrainingToday } from "@/lib/training";
 import { bodyShape } from "@/lib/projection";
 import type { DailyDashboard, ExerciseLog, Meal, ProjectionInput, WeightLog } from "@/lib/types";
 
@@ -42,6 +43,7 @@ function Today() {
           {data.meals.length === 0 && data.exercises.length === 0 ? (
             <>
               <EmptyDay q={q} />
+              <TrainingDue date={date} q={q} />
               <WeightRow weight={data.weight} q={q} />
             </>
           ) : (
@@ -56,7 +58,7 @@ function Today() {
                 <LaneBar label="Lemak" value={data.intake.fatG} target={data.targets.fatG} />
               </section>
               <MealList meals={data.meals} q={q} />
-              <ExerciseList exercises={data.exercises} q={q} onChange={() => mutate()} />
+              <ExerciseList date={date} exercises={data.exercises} q={q} onChange={() => mutate()} />
               <WeightRow weight={data.weight} q={q} />
               <LinkButton href={`/summary${q}`} variant="secondary" className="w-full">
                 {data.hasSummary ? "Lihat summary & rekomendasi" : "Buat summary & rekomendasi"}
@@ -234,7 +236,53 @@ function MealList({ meals, q }: { meals: Meal[]; q: string }) {
   );
 }
 
-function ExerciseList({ exercises, q, onChange }: { exercises: ExerciseLog[]; q: string; onChange: () => void }) {
+/** Today's planned session from the training program, until it is logged. */
+function TrainingDue({ date, q }: { date: string; q: string }) {
+  const { data } = useApi<TrainingToday>(`/training/today?date=${date}`);
+  if (!data) return null;
+  if (!data.plan) {
+    return (
+      <Link href={`/latihan${q}`} className="text-sm font-semibold text-accent-ink">
+        Pilih program latihan beban & lari
+      </Link>
+    );
+  }
+  const due = [
+    data.strength?.scheduled && !data.strength.done && { title: data.strength.title, href: `/latihan/beban${q}` },
+    data.run?.scheduled && !data.run.done && { title: `Lari ${data.run.target.durationMin} menit`, href: `/latihan/lari${q}` },
+  ].filter(Boolean) as { title: string; href: string }[];
+  if (!due.length) return null;
+  return (
+    <ul className="flex flex-col gap-2">
+      {due.map((d) => (
+        <li key={d.href}>
+          <Link
+            href={d.href}
+            className="pressable flex min-h-14 items-center justify-between gap-3 rounded-[6px] border-2 border-ink px-4 py-2"
+          >
+            <span>
+              <span className="block text-sm text-muted">Jadwal latihan</span>
+              <span className="font-semibold">{d.title}</span>
+            </span>
+            <span className="font-semibold text-accent-ink">Mulai</span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ExerciseList({
+  date,
+  exercises,
+  q,
+  onChange,
+}: {
+  date: string;
+  exercises: ExerciseLog[];
+  q: string;
+  onChange: () => void;
+}) {
   return (
     <section aria-labelledby="olahraga" className="flex flex-col gap-3">
       <div className="flex items-baseline justify-between">
@@ -245,6 +293,7 @@ function ExerciseList({ exercises, q, onChange }: { exercises: ExerciseLog[]; q:
           Tambah
         </Link>
       </div>
+      <TrainingDue date={date} q={q} />
       {exercises.length === 0 ? (
         <p className="text-muted">Belum ada olahraga tercatat.</p>
       ) : (

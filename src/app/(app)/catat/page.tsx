@@ -19,6 +19,11 @@ function Catat() {
   const date = isDate(raw) ? raw : todayLocal();
   const q = date === todayLocal() ? "" : `?date=${date}`;
   const others = [
+    {
+      href: `/latihan${q}`,
+      title: "Latihan beban & lari",
+      desc: "Program mingguan dengan target beban, repetisi, dan jarak yang naik bertahap.",
+    },
     { href: `/catat/olahraga${q}`, title: "Olahraga", desc: "Pilih dari daftar atau ceritakan, AI yang merapikan." },
     {
       href: `/catat/berat${q}`,

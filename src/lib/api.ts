@@ -22,7 +22,7 @@ export class ApiError extends Error {
 type Body = Record<string, unknown> | unknown[] | FormData;
 
 /** Screens built from logged data. After any change, their cached copies are stale. */
-const DAY_DATA = /^\/(dashboard|summaries|weights|meals|exercises\?|profile)/;
+const DAY_DATA = /^\/(dashboard|summaries|weights|meals|exercises\?|profile|training)/;
 
 /**
  * Drops cached day data so the next screen fetches fresh numbers instead of showing
