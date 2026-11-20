@@ -4,11 +4,12 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type ComponentProps, type FormEvent } from "react";
 import { toast } from "sonner";
+import { TrendChart } from "@/components/trend-chart";
 import { Button, ErrorState, Field, Input, LoadingState, PageHeader } from "@/components/ui";
 import { ApiError, api, errorMessage, useApi } from "@/lib/api";
 import { BODY_COMP, compBrief, hasBodyComp, parseReading, readingError } from "@/lib/body-comp";
 import { dateLabel, dayLabel, fmt1, isDate, shiftDate, todayLocal } from "@/lib/format";
-import type { WeightLog } from "@/lib/types";
+import type { ProjectionInput, WeightLog } from "@/lib/types";
 
 export default function BeratPage() {
   return (
@@ -25,7 +26,8 @@ function Berat() {
   const openComp = params.get("komposisi") === "1";
   const date = isDate(raw) ? raw : todayLocal();
   const q = date === todayLocal() ? "" : `?date=${date}`;
-  const { data, error, isLoading, mutate } = useApi<WeightLog[]>(`/weights?from=${shiftDate(date, -29)}&to=${date}`);
+  const { data, error, isLoading, mutate } = useApi<WeightLog[]>(`/weights?from=${shiftDate(date, -89)}&to=${date}`);
+  const goalKg = useApi<ProjectionInput>("/dashboard/projection").data?.targetWeightKg;
   const current = data?.find((w) => w.date.slice(0, 10) === date);
   const recent = [...(data ?? [])].reverse().slice(0, 7);
 
@@ -44,9 +46,15 @@ function Berat() {
         />
       )}
 
+      {data && (
+        <div className="mt-10">
+          <TrendChart logs={data} end={date} days={90} goalKg={goalKg} />
+        </div>
+      )}
+
       <section aria-labelledby="riwayat" className="mt-10 flex flex-col gap-3">
         <h2 id="riwayat" className="font-display text-2xl font-bold">
-          30 hari terakhir
+          Catatan terakhir
         </h2>
         {error && <ErrorState message={errorMessage(error)} onRetry={() => mutate()} />}
         {data && recent.length === 0 && <p className="text-muted">Belum ada catatan berat badan.</p>}

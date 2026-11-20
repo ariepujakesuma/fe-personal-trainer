@@ -42,7 +42,7 @@ export function ProfileForm({
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     const f = new FormData(e.currentTarget);
-    const num = (k: string) => Number(f.get(k));
+    const num = (k: string) => Number(String(f.get(k)).replace(",", "."));
     setBusy(true);
     setError(null);
     try {
@@ -55,6 +55,7 @@ export function ProfileForm({
           birthDate: f.get("birthDate"),
           heightCm: num("heightCm"),
           weightKg: f.get("weightKg") ? num("weightKg") : undefined,
+          targetWeightKg: f.get("targetWeightKg") ? num("targetWeightKg") : null,
           activityLevel: f.get("activityLevel"),
           targets: override
             ? { calories: num("tCalories"), proteinG: num("tProtein"), carbsG: num("tCarbs"), fatG: num("tFat") }
@@ -105,6 +106,16 @@ export function ProfileForm({
           />
         </Field>
       </div>
+
+      <Field label="Target berat (kg)" htmlFor="targetWeightKg" hint="Opsional. Dipakai untuk perkiraan kapan target tercapai.">
+        <Input
+          id="targetWeightKg"
+          name="targetWeightKg"
+          inputMode="decimal"
+          defaultValue={p?.targetWeightKg ?? undefined}
+          placeholder="75"
+        />
+      </Field>
 
       <Field label="Aktivitas harian" htmlFor="activityLevel">
         <Select id="activityLevel" name="activityLevel" defaultValue={p?.activityLevel ?? "light"}>

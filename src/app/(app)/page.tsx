@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { CalibrationCard } from "@/components/calibration-card";
 import { ErrorState, LoadingState, Segmented } from "@/components/ui";
 import { errorMessage, useApi } from "@/lib/api";
 import { fmt, fmt1, todayLocal } from "@/lib/format";
@@ -34,8 +35,11 @@ export default function HomePage() {
 
 function Projection({ p }: { p: ProjectionInput }) {
   const [period, setPeriod] = useState<Period>("30");
-  const now = useMemo(() => simulate(p, false), [p]);
-  const target = useMemo(() => (p.targetDeficit == null ? null : simulate(p, true)), [p]);
+  // Three years, so a target weight further out still gets a date; the screen shows the first year.
+  const long = useMemo(() => simulate(p, false, 1095), [p]);
+  const longTarget = useMemo(() => (p.targetDeficit == null ? null : simulate(p, true, 1095)), [p]);
+  const now = long.slice(0, 366);
+  const target = longTarget?.slice(0, 366) ?? null;
   const meta = PERIODS.find((x) => x.value === period)!;
   const start = now[0];
   const end = now[Number(period)];
@@ -71,10 +75,12 @@ function Projection({ p }: { p: ProjectionInput }) {
         </p>
       </section>
 
+      <TargetWeight p={p} now={long} target={longTarget} />
       <BodyShape sex={p.sex} bfNow={bfNow} bfEnd={bfEnd} periodLabel={meta.long} bodyFatDate={p.bodyFatDate} />
-      <Chart now={now} target={target} period={Number(period)} />
+      <Chart now={now} target={target} period={Number(period)} goalKg={p.targetWeightKg} />
       <Pace p={p} now={now} target={target} period={Number(period)} periodLabel={meta.long} />
       <Advice p={p} bfEnd={bfEnd} />
+      <CalibrationCard compact />
 
       <p className="text-sm text-muted">
         Perkiraan, bukan jaminan. Kebutuhan kalori ikut turun saat berat turun, jadi laju melambat seiring waktu. Hari
@@ -191,8 +197,18 @@ function BodyShape({
   );
 }
 
-function Chart({ now, target, period }: { now: Point[]; target: Point[] | null; period: number }) {
-  const all = [...now, ...(target ?? [])].map((x) => x.weightKg);
+function Chart({
+  now,
+  target,
+  period,
+  goalKg,
+}: {
+  now: Point[];
+  target: Point[] | null;
+  period: number;
+  goalKg: number | null;
+}) {
+  const all = [...now, ...(target ?? [])].map((x) => x.weightKg).concat(goalKg ?? []);
   const hi = Math.ceil(Math.max(...all));
   const lo = Math.floor(Math.min(...all));
   const span = Math.max(1, hi - lo);
@@ -228,6 +244,14 @@ function Chart({ now, target, period }: { now: Point[]; target: Point[] | null; 
           <text x={40} y={162}>Hari ini</text>
           <text x={340} y={162} textAnchor="end">1 tahun</text>
         </g>
+        {goalKg != null && (
+          <g className="text-ink">
+            <line x1={40} y1={Y(goalKg)} x2={340} y2={Y(goalKg)} stroke="currentColor" strokeWidth={1} strokeDasharray="2 3" />
+            <text x={338} y={Y(goalKg) - 4} textAnchor="end" fontSize={11} fill="currentColor">
+              Target {fmt1(goalKg)} kg
+            </text>
+          </g>
+        )}
         {target && (
           <polyline points={pts(target)} className="text-muted" fill="none" stroke="currentColor" strokeWidth={2} strokeDasharray="4 4" />
         )}
@@ -246,6 +270,75 @@ function Chart({ now, target, period }: { now: Point[]; target: Point[] | null; 
           </span>
         )}
       </div>
+    </section>
+  );
+}
+
+/** First day the weight reaches the goal, or null within the simulated span. */
+function reachDay(points: Point[], goal: number): number | null {
+  const down = goal < points[0].weightKg;
+  const hit = points.find((x) => (down ? x.weightKg <= goal : x.weightKg >= goal));
+  return hit ? hit.day : null;
+}
+
+function whenLabel(day: number | null): string {
+  if (day == null) return "Tidak tercapai dalam 3 tahun";
+  const date = new Date(Date.parse(`${todayLocal()}T00:00:00Z`) + day * 86400000);
+  const month = new Intl.DateTimeFormat("id-ID", { month: "long", year: "numeric", timeZone: "UTC" }).format(date);
+  const weeks = Math.round(day / 7);
+  return `${month} (${day < 14 ? `${day} hari` : weeks < 9 ? `${weeks} minggu` : `${Math.round(day / 30.4)} bulan`} lagi)`;
+}
+
+function TargetWeight({ p, now, target }: { p: ProjectionInput; now: Point[]; target: Point[] | null }) {
+  const goal = p.targetWeightKg;
+  if (goal == null) {
+    return (
+      <p className="text-sm text-muted">
+        <Link href="/profil" className="font-semibold text-accent-ink">
+          Isi target berat
+        </Link>{" "}
+        untuk melihat kapan target tercapai.
+      </p>
+    );
+  }
+  const gap = goal - now[0].weightKg;
+  if (Math.abs(gap) < 0.3) {
+    return (
+      <section className="rounded-[6px] border border-line bg-surface p-4">
+        <h2 className="font-semibold">Kamu sudah di target {fmt1(goal)} kg</h2>
+        <p className="text-sm text-muted">Ubah goal di Profil ke jaga berat badan supaya target kalorinya ikut menyesuaikan.</p>
+      </section>
+    );
+  }
+  const nowDay = reachDay(now, goal);
+  const targetDay = target ? reachDay(target, goal) : null;
+  return (
+    <section aria-labelledby="target-berat" className="flex flex-col gap-2 rounded-[6px] border border-line bg-surface p-4">
+      <h2 id="target-berat" className="font-display text-2xl font-bold">
+        Target {fmt1(goal)} kg
+      </h2>
+      <p className="text-sm text-muted">
+        {gap < 0 ? "Turun" : "Naik"} {fmt1(Math.abs(gap))} kg lagi.
+      </p>
+      <dl className="flex flex-col gap-1.5">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+          <dt className="text-sm text-muted">Pola sekarang</dt>
+          <dd className="font-semibold">{whenLabel(nowDay)}</dd>
+        </div>
+        {target && (
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3">
+            <dt className="text-sm text-muted">Kalau ikut target {fmt(p.targetCalories)} kkal</dt>
+            <dd className="font-semibold">{whenLabel(targetDay)}</dd>
+          </div>
+        )}
+      </dl>
+      {nowDay == null && (
+        <p className="text-sm">
+          {Math.sign(now[365].weightKg - now[0].weightKg) !== Math.sign(gap)
+            ? "Berat bergerak menjauh dari target dengan pola sekarang."
+            : "Lajunya terlalu pelan untuk sampai ke target."}
+        </p>
+      )}
     </section>
   );
 }

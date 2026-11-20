@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
+import { RepeatMeals } from "@/components/repeat-meals";
 import { Button, Field, LoadingState, PageHeader, Segmented, Textarea } from "@/components/ui";
 import { MEAL_LABEL, MEAL_OPTIONS, eatenAtFor, isDate, mealTypeNow, todayLocal } from "@/lib/format";
 import { compressImage } from "@/lib/image";
@@ -68,6 +69,8 @@ function CatatMakanan() {
       <PageHeader title="Catat makanan" back={`/catat${q}`} />
       <form onSubmit={onSubmit} className="flex flex-col gap-5">
         <Segmented name="mealType" legend="Waktu makan" value={mealType} onChange={setMealType} options={MEAL_OPTIONS} />
+
+        <RepeatMeals date={date} mealType={mealType} onLogged={() => router.push(`/hari-ini${q}`)} />
 
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-semibold">Foto</span>

@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
+import { CalibrationCard } from "@/components/calibration-card";
 import { ProfileForm } from "@/components/profile-form";
 import { Button, ErrorState, LoadingState, PageHeader, Segmented } from "@/components/ui";
 import { api, errorMessage, useApi } from "@/lib/api";
@@ -89,6 +90,7 @@ export default function ProfilPage() {
                 {data.profile.targetsOverridden ? ", target diatur manual." : "."}
               </p>
             )}
+            <CalibrationCard />
           </section>
 
           <section aria-labelledby="pengaturan" className="flex flex-col gap-5">

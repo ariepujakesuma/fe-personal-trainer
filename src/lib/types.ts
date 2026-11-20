@@ -36,6 +36,7 @@ export interface Profile {
   targetFatG: number;
   targetsOverridden: boolean;
   emailReminderEnabled: boolean;
+  targetWeightKg: number | null;
 }
 
 export interface ProfileResponse {
@@ -71,7 +72,14 @@ export interface Meal {
   fatG: number;
   assumptions: string[] | null;
   aiModel: string | null;
+  favorite?: boolean;
   items: MealItem[];
+}
+
+/** GET /meals/recent: one entry per distinct set of foods. */
+export interface RecentMeal extends Meal {
+  favorite: boolean;
+  timesEaten: number;
 }
 
 export interface ExerciseType {
@@ -180,4 +188,22 @@ export interface ProjectionInput {
   targetCalories: number;
   targetDeficit: number | null;
   targetProteinG: number;
+  targetWeightKg: number | null;
 }
+
+/** GET /profile/calibration */
+export type Calibration =
+  | { status: "not_enough"; loggedDays: number; weighIns: number; weighSpanDays: number }
+  | {
+      status: "ready" | "unreliable";
+      loggedDays: number;
+      weighIns: number;
+      weighSpanDays: number;
+      avgIntake: number;
+      avgBurn: number;
+      weightChangePerWeek: number;
+      observedTdee: number;
+      formulaTdee: number;
+      currentTarget: number;
+      suggestedCalories: number;
+    };
