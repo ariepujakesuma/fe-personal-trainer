@@ -49,6 +49,8 @@ export async function api<T>(path: string, init: { method?: string; body?: Body 
     res = await fetch(`${API_URL}${path}`, {
       method: init.method ?? (init.body ? "POST" : "GET"),
       headers,
+      // Logged data changes all the time; never let the browser answer from its HTTP cache.
+      cache: "no-store",
       body: init.body ? (isForm ? (init.body as FormData) : JSON.stringify(init.body)) : undefined,
     });
   } catch {
@@ -72,6 +74,8 @@ export async function api<T>(path: string, init: { method?: string; body?: Body 
 export function useApi<T>(path: string | null, config?: SWRConfiguration<T, ApiError>) {
   return useSWR<T, ApiError>(path, (p: string) => api<T>(p), {
     revalidateOnFocus: true,
+    // Coming back to the PWA should show fresh data, not a copy from minutes ago.
+    focusThrottleInterval: 2000,
     shouldRetryOnError: (err) => err.status === 0 || err.status >= 500,
     ...config,
   });

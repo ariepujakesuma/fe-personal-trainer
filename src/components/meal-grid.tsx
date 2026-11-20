@@ -6,25 +6,32 @@ import { fetchImageUrl } from "@/lib/api";
 import { MEAL_LABEL, fmt, timeLabel } from "@/lib/format";
 import type { Meal } from "@/lib/types";
 
-/** Object URLs by meal id, so photos survive moving between days and screens. */
-const photoCache = new Map<string, string | null>();
+/**
+ * Loaded photos by meal and stored file, so they survive moving between days and screens.
+ * Only successes are kept: a photo that failed (storage not ready, offline) is tried again
+ * the next time the card shows, instead of staying a placeholder until the app restarts.
+ */
+const photoCache = new Map<string, string>();
 
 function useMealPhoto(meal: Meal) {
-  const [url, setUrl] = useState<string | null>(() => photoCache.get(meal.id) ?? null);
+  const key = meal.photoUrl ? `${meal.id}:${meal.photoUrl}` : null;
+  const [loaded, setLoaded] = useState<{ key: string; url: string } | null>(null);
+  const cached = key ? photoCache.get(key) : undefined;
   useEffect(() => {
-    if (!meal.photoUrl || photoCache.has(meal.id)) return;
+    if (!key || photoCache.has(key)) return;
     let live = true;
     fetchImageUrl(`/meals/${meal.id}/photo`)
-      .catch(() => null)
       .then((u) => {
-        photoCache.set(meal.id, u);
-        if (live) setUrl(u);
-      });
+        if (!u) return;
+        photoCache.set(key, u);
+        if (live) setLoaded({ key, url: u });
+      })
+      .catch(() => undefined);
     return () => {
       live = false;
     };
-  }, [meal.id, meal.photoUrl]);
-  return url;
+  }, [key, meal.id]);
+  return cached ?? (loaded && loaded.key === key ? loaded.url : null);
 }
 
 /** Meals as photo cards, two per row. Without a photo the card shows the food names instead. */

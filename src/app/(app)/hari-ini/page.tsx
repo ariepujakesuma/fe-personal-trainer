@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { CalorieGauge } from "@/components/calorie-gauge";
 import { DayStrip } from "@/components/day-strip";
@@ -25,7 +25,18 @@ export default function TodayPage() {
   );
 }
 
+/** Re-renders when the app comes back to the foreground, so "today" moves on after midnight. */
+function useResumeTick() {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const onShow = () => document.visibilityState === "visible" && setTick((t) => t + 1);
+    document.addEventListener("visibilitychange", onShow);
+    return () => document.removeEventListener("visibilitychange", onShow);
+  }, []);
+}
+
 function Today() {
+  useResumeTick();
   const params = useSearchParams();
   const session = useSession();
   const raw = params.get("date");
