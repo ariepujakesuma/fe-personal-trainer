@@ -12,7 +12,7 @@ const inSentence = (date: string) => {
   const l = dayLabel(date);
   return l === "Hari ini" || l === "Kemarin" ? l.toLowerCase() : l;
 };
-import { WEEKDAYS, pace, setsLabel, targetLabel, type TrainingToday } from "@/lib/training";
+import { WEEKDAYS, pace, setsLabel, targetLabel, videoUrl, type TrainingToday } from "@/lib/training";
 
 export default function LatihanPage() {
   return (
@@ -129,7 +129,18 @@ function StrengthCard({ s, q, date }: { s: NonNullable<TrainingToday["strength"]
           const logged = s.logged?.find((l) => l.lift === e.lift);
           return (
             <li key={e.lift} className="flex flex-col gap-0.5 py-3">
-              <span className="font-semibold">{e.name}</span>
+              <span className="flex items-baseline justify-between gap-3">
+                <span className="font-semibold">{e.name}</span>
+                <a
+                  href={videoUrl(e.name)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Video ${e.name} di YouTube`}
+                  className="-my-3 flex min-h-11 shrink-0 items-center text-sm font-semibold text-accent-ink"
+                >
+                  Video
+                </a>
+              </span>
               {logged ? (
                 <span className="text-sm">Tercatat: {setsLabel(e.kind, logged.sets)}</span>
               ) : (

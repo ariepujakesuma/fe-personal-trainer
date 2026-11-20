@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Button, ErrorState, Input, LinkButton, LoadingState, PageHeader } from "@/components/ui";
 import { api, errorMessage, useApi } from "@/lib/api";
 import { isDate, todayLocal } from "@/lib/format";
-import { setsLabel, targetLabel, type TodayExercise, type TrainingToday } from "@/lib/training";
+import { setsLabel, targetLabel, videoUrl, type TodayExercise, type TrainingToday } from "@/lib/training";
 
 export default function BebanPage() {
   return (
@@ -99,6 +99,14 @@ function Session({ s, date, q }: { s: NonNullable<TrainingToday["strength"]>; da
               {e.name}
             </h2>
             <p className="text-sm text-muted">{e.cue}</p>
+            <a
+              href={videoUrl(e.name)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex min-h-11 items-center self-start text-sm font-semibold text-accent-ink"
+            >
+              Lihat video cara melakukannya (YouTube)
+            </a>
             <p className="text-sm">
               Target <strong>{targetLabel(e.kind, e.target)}</strong>
               {e.last ? <span className="text-muted"> · terakhir {setsLabel(e.kind, e.last.sets ?? [])}</span> : null}

@@ -122,3 +122,12 @@ export function pace(distanceKm: number | null | undefined, durationMin: number)
   const secPerKm = Math.round((durationMin * 60) / distanceKm);
   return `${Math.floor(secPerKm / 60)}:${String(secPerKm % 60).padStart(2, "0")}`;
 }
+
+/**
+ * YouTube search for the exercise's technique. A search, not a fixed video, so the link
+ * never dies and always shows current, popular tutorials.
+ */
+export function videoUrl(liftName: string): string {
+  const name = liftName.replace(/\s*\(.*?\)/g, "").trim();
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(`cara ${name} yang benar`)}`;
+}
