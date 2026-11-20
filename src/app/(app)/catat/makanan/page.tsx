@@ -76,7 +76,7 @@ function CatatMakanan() {
           <span className="text-sm font-semibold">Foto</span>
           <label
             htmlFor="photo"
-            className={`pressable relative flex cursor-pointer items-center justify-center overflow-hidden rounded-[6px] has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+            className={`pressable relative flex cursor-pointer items-center justify-center overflow-hidden rounded-2xl has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
               preview ? "aspect-[4/3] bg-surface" : "min-h-28 border-2 border-dashed border-muted bg-surface"
             }`}
           >

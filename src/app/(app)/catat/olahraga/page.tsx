@@ -101,7 +101,7 @@ function Olahraga() {
     <>
       <PageHeader title="Olahraga" back={`/catat${q}`} />
 
-      <section aria-labelledby="cerita" className="flex flex-col gap-3 rounded-[6px] border border-line bg-surface p-4">
+      <section aria-labelledby="cerita" className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
         <h2 id="cerita" className="font-display text-xl font-bold">
           Ceritakan, biar AI yang isi
         </h2>

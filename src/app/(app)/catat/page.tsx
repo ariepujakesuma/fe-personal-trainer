@@ -39,7 +39,7 @@ function Catat() {
 
       <Link
         href={`/catat/makanan${q}`}
-        className="pressable flex min-h-40 flex-col justify-between gap-4 rounded-[6px] bg-accent p-5 text-on-accent"
+        className="pressable flex min-h-40 flex-col justify-between gap-4 rounded-2xl bg-accent p-5 text-on-accent"
       >
         <span className="numeral text-6xl">Catat makanan</span>
         <span className="max-w-[30ch] font-medium">Foto piringmu atau tulis saja. AI menghitung kalori dan makronya.</span>

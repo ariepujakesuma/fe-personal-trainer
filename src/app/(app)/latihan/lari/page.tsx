@@ -58,7 +58,7 @@ function Lari() {
       <PageHeader title="Catat lari" back={`/latihan${q}`} />
       <div className="flex flex-col gap-5">
         {run && (
-          <section className="flex flex-col gap-1 rounded-[6px] border border-line bg-surface p-4">
+          <section className="flex flex-col gap-1 rounded-2xl border border-line bg-surface p-4">
             <p className="text-sm font-semibold text-accent-ink">
               {run.planName} · minggu {Math.min(run.week, run.totalWeeks)}
             </p>

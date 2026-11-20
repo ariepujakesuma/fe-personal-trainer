@@ -132,7 +132,7 @@ export function ProfileForm({
         {GOALS.map((g) => (
           <label
             key={g.value}
-            className={`no-select flex min-h-14 cursor-pointer flex-col justify-center rounded-[6px] border px-4 py-2 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+            className={`no-select flex min-h-14 cursor-pointer flex-col justify-center rounded-2xl border px-4 py-2 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
               goal === g.value ? "border-ink bg-surface" : "border-line"
             }`}
           >
@@ -147,7 +147,7 @@ export function ProfileForm({
       </fieldset>
 
       {initial && (
-        <div className="flex flex-col gap-3 rounded-[6px] border border-line p-4">
+        <div className="flex flex-col gap-3 rounded-2xl border border-line p-4">
           <label className="flex min-h-11 cursor-pointer items-center justify-between gap-3">
             <span>
               <span className="block font-semibold">Atur target manual</span>

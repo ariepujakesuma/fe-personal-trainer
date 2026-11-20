@@ -19,7 +19,7 @@ function Arrow({ dir }: { dir: "left" | "right" }) {
 export function DateSwitcher({ date, basePath }: { date: string; basePath: string }) {
   const today = todayLocal();
   const href = (d: string) => (d === today ? basePath : `${basePath}?date=${d}`);
-  const btn = "pressable flex size-11 items-center justify-center rounded-[6px] border border-line text-ink hover:border-muted";
+  const btn = "pressable flex size-11 items-center justify-center rounded-2xl border border-line text-ink hover:border-muted";
   return (
     <div className="flex items-center gap-2">
       <Link href={href(shiftDate(date, -1))} className={btn} aria-label="Hari sebelumnya">

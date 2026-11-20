@@ -43,7 +43,7 @@ function Latihan() {
       {isLoading && <LoadingState />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => mutate()} />}
       {data && !data.plan && (
-        <section className="flex flex-col gap-3 rounded-[6px] border-2 border-ink p-4">
+        <section className="flex flex-col gap-3 rounded-2xl border-2 border-ink p-4">
           <h2 className="font-display text-2xl font-bold">Pilih program latihan</h2>
           <p className="text-muted">
             Latihan beban dan lari dengan jadwal mingguan. Setiap gerakan punya target beban dan repetisi yang naik
@@ -81,7 +81,7 @@ function Week({ week, today }: { week: NonNullable<TrainingToday["week"]>; today
             key={d.date}
             aria-current={d.date === today ? "date" : undefined}
             aria-label={`${wd.long}: ${items.length ? items.map((i) => `${i.label}${i.done ? " selesai" : ""}`).join(", ") : "istirahat"}`}
-            className={`flex min-h-16 flex-col items-center gap-1 rounded-[4px] border py-1.5 text-xs ${
+            className={`flex min-h-16 flex-col items-center gap-1 rounded-xl border py-1.5 text-xs ${
               d.date === today ? "border-ink" : "border-line"
             }`}
           >
@@ -91,7 +91,7 @@ function Week({ week, today }: { week: NonNullable<TrainingToday["week"]>; today
                 <span
                   key={i.label}
                   aria-hidden
-                  className={`rounded-[3px] px-1 leading-4 ${i.done ? "bg-accent text-on-accent" : "border border-line text-muted"}`}
+                  className={`rounded-md px-1 leading-4 ${i.done ? "bg-accent text-on-accent" : "border border-line text-muted"}`}
                 >
                   {i.label === "Beban" ? "B" : "L"}
                   {i.done ? "✓" : ""}
@@ -190,7 +190,7 @@ function RunCard({ r, q, date }: { r: NonNullable<TrainingToday["run"]>; q: stri
           {r.logged.distanceKm ? `, ${fmt1(r.logged.distanceKm)} km, pace ${pace(r.logged.distanceKm, r.logged.durationMin)}/km` : ""}
         </p>
       )}
-      <div className="flex flex-col gap-1.5 rounded-[6px] border border-line bg-surface p-3">
+      <div className="flex flex-col gap-1.5 rounded-2xl border border-line bg-surface p-3">
         <p className="text-sm">
           Jarak minggu ini <strong>{fmt1(r.thisWeekKm)} km</strong>
           {r.weekKmTarget ? ` dari target ${fmt1(r.weekKmTarget)} km` : ""}

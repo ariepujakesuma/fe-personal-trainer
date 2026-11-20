@@ -9,7 +9,7 @@
 
 /* Palette and reasons: DESIGN.md */
 :root {
-  --paper: #f4f2ee;
+  --paper: #f3f3f1;
   --surface: #ffffff;
   --ink: #15161a;
   --muted: #5c5f66;
@@ -19,6 +19,12 @@
   --accent-ink: #b83a00;
   --danger: #b42318;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  /* Macro colours: one per nutrient, the same everywhere they appear */
+  --carb: #6d5ce8;
+  --protein: #0f9e8a;
+  --fat: #c96a12;
+  --card-shadow: 0 1px 2px rgb(21 22 26 / 0.04), 0 8px 24px -12px rgb(21 22 26 / 0.12);
+  --card-border: transparent;
   color-scheme: light;
 }
 
@@ -32,6 +38,11 @@
   --on-accent: #15161a;
   --accent-ink: #ff8a55;
   --danger: #ff8a80;
+  --carb: #a093ff;
+  --protein: #3cc9b4;
+  --fat: #ffa65c;
+  --card-shadow: none;
+  --card-border: #2a2d33;
   color-scheme: dark;
 }
 
@@ -45,9 +56,12 @@
   --color-on-accent: var(--on-accent);
   --color-accent-ink: var(--accent-ink);
   --color-danger: var(--danger);
+  --color-carb: var(--carb);
+  --color-protein: var(--protein);
+  --color-fat: var(--fat);
   --font-sans: "Barlow", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Barlow Condensed", "Barlow", ui-sans-serif, sans-serif;
-  --radius-card: 6px;
+  --radius-card: 24px;
 }
 
 html {
@@ -116,4 +130,12 @@ button,
   .pressable:active:not(:disabled) {
     transform: none;
   }
+}
+
+/* Content grouped on a white card that sits on the grey page */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--card-border);
 }

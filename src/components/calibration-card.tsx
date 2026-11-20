@@ -93,7 +93,7 @@ export function CalibrationCard({ compact = false }: { compact?: boolean }) {
 
 function Shell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <section className="flex flex-col gap-2 rounded-[6px] border-2 border-ink p-4">
+    <section className="flex flex-col gap-2 rounded-2xl border-2 border-ink p-4">
       <h2 className="font-semibold">{title}</h2>
       {children}
     </section>

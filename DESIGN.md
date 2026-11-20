@@ -48,3 +48,14 @@ Dua warna inti (ink, paper) ditambah satu aksen. Aksen hanya dipakai di momen ku
 ## Mobile
 
 Target tap minimal 44px, input 16px (supaya tidak auto-zoom di iOS), `100dvh`, safe-area inset, tanpa tap highlight, hover hanya di perangkat dengan pointer presisi, `theme-color` mengikuti tema.
+
+## Revisi 2026-11-20: tampilan lebih bersih
+
+Atas permintaan Arie, mengikuti referensi aplikasi kalori yang lebih lembut:
+
+- **Kartu:** konten dikelompokkan di kartu putih (`.card`, radius 24px, bayangan halus) di atas latar abu muda `#F3F3F1`. Di mode gelap bayangan diganti garis `--line`.
+- **Radius:** kartu 24px, field dan kotak 16px, tombol dan pil `rounded-full`. Aturan lama "radius 6px, tanpa bayangan" tidak berlaku lagi.
+- **Warna makro:** karbo `--carb` (ungu), protein `--protein` (hijau toska), lemak `--fat` (oranye tua). Kontras minimal 3:1 terhadap kartu di kedua tema. Aksen tetap oranye.
+- **Hari ini:** sapaan, strip tanggal 4 minggu, gauge kalori setengah lingkaran, kartu makanan berfoto (tanpa foto: nama makanannya jadi gambar).
+- **Navigasi:** ikon + label, tombol Catat bundar di tengah.
+- **Gerak:** segmented control dan grup chip memakai thumb/kapsul yang bergeser (spring tanpa overshoot, 0,38 detik), tetap jalan saat Reduce Motion; hanya efek tekan yang dimatikan.

@@ -143,7 +143,7 @@ function Choice({
       {options.map((o) => (
         <label
           key={o.value || "none"}
-          className={`no-select flex min-h-14 cursor-pointer flex-col justify-center rounded-[6px] border px-4 py-2.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+          className={`no-select flex min-h-14 cursor-pointer flex-col justify-center rounded-2xl border px-4 py-2.5 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
             value === o.value ? "border-ink bg-surface" : "border-line"
           }`}
         >
@@ -169,7 +169,7 @@ function Days({ legend, value, onChange }: { legend: string; value: number[]; on
           return (
             <label
               key={d.value}
-              className={`no-select flex min-h-11 cursor-pointer items-center justify-center rounded-[4px] border text-sm font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+              className={`no-select flex min-h-11 cursor-pointer items-center justify-center rounded-xl border text-sm font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
                 on ? "border-ink bg-ink text-paper" : "border-line text-muted"
               }`}
             >

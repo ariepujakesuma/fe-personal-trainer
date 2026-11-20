@@ -52,7 +52,7 @@ function Summary() {
       {summary.error && <ErrorState message={errorMessage(summary.error)} onRetry={() => summary.mutate()} />}
 
       {summary.data && !s && (
-        <section className="flex flex-col gap-4 rounded-[6px] border border-line bg-surface p-5">
+        <section className="flex flex-col gap-4 rounded-2xl border border-line bg-surface p-5">
           <h1 className="font-display text-3xl font-bold">Belum ada summary</h1>
           {day.data && !day.data.hasAnyLog ? (
             <>

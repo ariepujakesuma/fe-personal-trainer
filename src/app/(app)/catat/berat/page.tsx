@@ -198,7 +198,7 @@ function WeightForm({
         />
       </Field>
 
-      <section className="rounded-[6px] border border-line" ref={compRef}>
+      <section className="rounded-2xl border border-line" ref={compRef}>
         {showComp ? (
           <div className="flex min-h-14 items-center justify-between gap-3 px-4 pt-2">
             <span>
@@ -230,7 +230,7 @@ function WeightForm({
         {/* Kept mounted while hidden so typed values are not lost. */}
         <div id="komposisi" hidden={!showComp} className="p-4">
           {showLast && (
-            <p className="mb-4 rounded-[4px] bg-paper p-3 text-sm">
+            <p className="mb-4 rounded-xl bg-paper p-3 text-sm">
               <span className="block font-semibold">Terakhir diukur {dateLabel(lastComp.date.slice(0, 10))}</span>
               <span className="block text-muted">{compBrief(lastComp).join(" · ")}</span>
               <span className="block text-muted">Data ini tetap dipakai untuk proyeksi sampai kamu isi yang baru.</span>
@@ -248,7 +248,7 @@ function WeightForm({
                     </span>
                   </label>
                   {f.alt && (
-                    <div role="group" aria-label={`Satuan ${f.label}`} className="flex shrink-0 rounded-[4px] border border-line text-xs font-semibold">
+                    <div role="group" aria-label={`Satuan ${f.label}`} className="flex shrink-0 rounded-xl border border-line text-xs font-semibold">
                       {[f.unit, f.alt].map((u) => {
                         const on = (u === f.alt) === !!altOn[f.key];
                         return (

@@ -89,7 +89,7 @@ export default function ImporPage() {
           cek dan ubah kalau ada yang salah. Liter dan kg otomatis diubah ke %.
         </p>
 
-        <label className="pressable flex min-h-14 cursor-pointer items-center justify-center rounded-[6px] border border-line bg-surface px-4 font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent">
+        <label className="pressable flex min-h-14 cursor-pointer items-center justify-center rounded-2xl border border-line bg-surface px-4 font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent">
           {file ? `Ganti file (${file.name})` : "Pilih file CSV"}
           <input type="file" accept=".csv,text/csv,text/plain" onChange={onFile} className="sr-only" />
         </label>

@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Button, ErrorState, Input, LoadingState, PageHeader, Segmented } from "@/components/ui";
+import { Button, ErrorState, Input, LoadingState, PageHeader, Segmented, ChipGroup } from "@/components/ui";
 import { api, errorMessage, fetchImageUrl, useApi } from "@/lib/api";
 import { MEAL_LABEL, MEAL_OPTIONS, fmt, fmt1, timeLabel, todayLocal } from "@/lib/format";
 import {
@@ -154,11 +154,11 @@ function Editor({ meal }: { meal: Meal }) {
 
       {photo && (
         // eslint-disable-next-line @next/next/no-img-element -- authed blob URL
-        <img src={photo} alt="Foto makanan" className="mb-5 h-48 w-full rounded-[6px] object-cover" />
+        <img src={photo} alt="Foto makanan" className="mb-5 h-48 w-full rounded-2xl object-cover" />
       )}
 
       {meal.status === "needs_manual" && (
-        <p className="mb-5 rounded-[6px] border-2 border-ink p-4" role="status">
+        <p className="mb-5 rounded-2xl border-2 border-ink p-4" role="status">
           AI belum bisa membaca makanan ini. Tambahkan item dan kalorinya manual, lalu simpan.
         </p>
       )}
@@ -287,7 +287,7 @@ function ItemCard({
   ].filter(Boolean);
 
   return (
-    <li className="flex flex-col gap-3 rounded-[6px] border border-line bg-surface p-3">
+    <li className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-semibold">{row.name || "Item baru"}</p>
@@ -302,20 +302,17 @@ function ItemCard({
 
       <div className="flex items-center gap-2">
         {row.base && (
-          <div className="grid flex-1 grid-cols-4 gap-1" role="group" aria-label={`Porsi ${row.name}`}>
-            {MULTIPLIERS.map((m) => (
-              <button
-                key={m.value}
-                type="button"
-                aria-pressed={active === m.value}
-                onClick={() => onChange((r) => applyMultiplier(r, m.value))}
-                className={`pressable min-h-11 rounded-[4px] border text-sm font-semibold ${
-                  active === m.value ? "border-ink bg-ink text-paper" : "border-line text-ink"
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
+          <div className="flex-1">
+            <ChipGroup
+              single
+              label={`Porsi ${row.name}`}
+              items={MULTIPLIERS.map((m) => ({
+                key: String(m.value),
+                label: m.label,
+                on: active === m.value,
+                onClick: () => onChange((r) => applyMultiplier(r, m.value)),
+              }))}
+            />
           </div>
         )}
         <button

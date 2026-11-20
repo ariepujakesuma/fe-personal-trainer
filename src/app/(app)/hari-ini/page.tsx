@@ -4,12 +4,14 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { toast } from "sonner";
-import { DateSwitcher } from "@/components/date-switcher";
-import { LaneBar } from "@/components/lane-bar";
+import { CalorieGauge } from "@/components/calorie-gauge";
+import { DayStrip } from "@/components/day-strip";
+import { MealGrid } from "@/components/meal-grid";
 import { Button, ErrorState, LinkButton, LoadingState, Spinner } from "@/components/ui";
 import { api, errorMessage, useApi } from "@/lib/api";
+import { useSession } from "@/lib/session";
 import { dismissPending, usePendingMeals } from "@/lib/pending-meals";
-import { INTENSITY_LABEL, MEAL_LABEL, dateLabel, fmt, fmt1, isDate, timeLabel, todayLocal } from "@/lib/format";
+import { INTENSITY_LABEL, dateLabel, fmt, fmt1, isDate, todayLocal } from "@/lib/format";
 import { compBrief } from "@/lib/body-comp";
 import type { TrainingToday } from "@/lib/training";
 import { bodyShape } from "@/lib/projection";
@@ -25,45 +27,44 @@ export default function TodayPage() {
 
 function Today() {
   const params = useSearchParams();
+  const session = useSession();
   const raw = params.get("date");
   const date = isDate(raw) ? raw : todayLocal();
   const { data, error, isLoading, mutate } = useApi<DailyDashboard>(`/dashboard/daily?date=${date}`);
   const q = date === todayLocal() ? "" : `?date=${date}`;
+  const firstName = session?.user.name.split(" ")[0];
 
   return (
-    <div className="flex flex-col gap-8">
-      <DateSwitcher date={date} basePath="/hari-ini" />
+    <div className="flex flex-col gap-6">
+      <header className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="truncate text-2xl font-semibold">Hai, {firstName}</h1>
+          <p className="text-muted">{date === todayLocal() ? "Ini catatanmu hari ini" : `Catatan ${dateLabel(date)}`}</p>
+        </div>
+        <Link
+          href="/profil"
+          aria-label="Profil dan pengaturan"
+          className="pressable flex size-12 shrink-0 items-center justify-center rounded-full bg-surface font-display text-xl font-bold shadow-[var(--card-shadow)]"
+        >
+          {firstName?.[0]?.toUpperCase()}
+        </Link>
+      </header>
+      <DayStrip date={date} basePath="/hari-ini" />
       {isLoading && <LoadingState />}
       {error && <ErrorState message={errorMessage(error)} onRetry={() => mutate()} />}
       <PendingAnalyses date={date} />
-      <ProjectionHint />
       {data && (
         <>
-          <Scoreboard d={data} />
-          {data.meals.length === 0 && data.exercises.length === 0 ? (
-            <>
-              <EmptyDay q={q} />
-              <TrainingDue date={date} q={q} />
-              <WeightRow weight={data.weight} q={q} />
-            </>
-          ) : (
-            <>
-              <PendingMeals meals={data.meals} />
-              <section aria-labelledby="makro" className="flex flex-col gap-4">
-                <h2 id="makro" className="font-display text-2xl font-bold">
-                  Makro
-                </h2>
-                <LaneBar label="Protein" value={data.intake.proteinG} target={data.targets.proteinG} emphasis />
-                <LaneBar label="Karbohidrat" value={data.intake.carbsG} target={data.targets.carbsG} />
-                <LaneBar label="Lemak" value={data.intake.fatG} target={data.targets.fatG} />
-              </section>
-              <MealList meals={data.meals} q={q} />
-              <ExerciseList date={date} exercises={data.exercises} q={q} onChange={() => mutate()} />
-              <WeightRow weight={data.weight} q={q} />
-              <LinkButton href={`/summary${q}`} variant="secondary" className="w-full">
-                {data.hasSummary ? "Lihat summary & rekomendasi" : "Buat summary & rekomendasi"}
-              </LinkButton>
-            </>
+          <PendingMeals meals={data.meals} />
+          <CalorieGauge d={data} />
+          <MealGrid meals={data.meals} q={q} />
+          <ExerciseList date={date} exercises={data.exercises} q={q} onChange={() => mutate()} />
+          <WeightRow weight={data.weight} q={q} />
+          <ProjectionHint />
+          {data.hasAnyLog && (
+            <LinkButton href={`/summary${q}`} variant="secondary" className="w-full">
+              {data.hasSummary ? "Lihat summary & rekomendasi" : "Buat summary & rekomendasi"}
+            </LinkButton>
           )}
         </>
       )}
@@ -78,7 +79,7 @@ function ProjectionHint() {
   const needsComp = data.missing.includes("bodyComposition");
   const needsMeals = data.missing.includes("meals");
   return (
-    <section aria-labelledby="buka-proyeksi" className="flex flex-col gap-2 rounded-[6px] border border-line bg-surface p-4">
+    <section aria-labelledby="buka-proyeksi" className="card flex flex-col gap-2 p-5">
       <h2 id="buka-proyeksi" className="font-semibold">
         Lihat proyeksi berat badanmu
       </h2>
@@ -105,7 +106,7 @@ function PendingAnalyses({ date }: { date: string }) {
   return (
     <ul className="flex flex-col gap-2" aria-live="polite">
       {pending.map((p) => (
-        <li key={p.id} className="flex min-h-14 items-center gap-3 rounded-[6px] border border-line bg-surface px-4 py-3">
+        <li key={p.id} className="flex min-h-14 items-center gap-3 rounded-2xl border border-line bg-surface px-4 py-3">
           {p.status === "processing" ? (
             <>
               <Spinner />
@@ -131,60 +132,13 @@ function PendingAnalyses({ date }: { date: string }) {
   );
 }
 
-function Scoreboard({ d }: { d: DailyDashboard }) {
-  const over = d.remaining < 0;
-  return (
-    <section aria-label="Kalori hari ini" className="flex flex-col gap-4">
-      <div>
-        <p className="font-semibold text-muted">{over ? "Lewat dari target" : "Sisa kalori"}</p>
-        <p className={`numeral text-[clamp(5rem,28vw,8rem)] ${over ? "text-ink" : "text-accent"}`}>
-          {fmt(Math.abs(d.remaining))}
-          <span className="ml-2 font-sans text-xl font-semibold text-muted">kkal</span>
-        </p>
-      </div>
-      <dl className="grid grid-cols-3 border-y border-line py-3">
-        <Stat label="Target" value={d.targets.calories} />
-        <Stat label="Makan" value={d.intake.calories} sign="−" />
-        <Stat label="Olahraga" value={d.burn} sign="+" />
-      </dl>
-    </section>
-  );
-}
-
-function Stat({ label, value, sign }: { label: string; value: number; sign?: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="numeral text-3xl">
-        {sign && value > 0 && <span className="mr-0.5 text-muted">{sign}</span>}
-        {fmt(value)}
-      </dd>
-    </div>
-  );
-}
-
-function EmptyDay({ q }: { q: string }) {
-  return (
-    <section className="flex flex-col gap-4 rounded-[6px] border border-line bg-surface p-5">
-      <h2 className="font-display text-2xl font-bold">Belum ada catatan</h2>
-      <p className="text-muted">Mulai dari makanan terakhirmu. Foto atau tulis saja, AI yang menghitung kalorinya.</p>
-      <div className="flex flex-col gap-2">
-        <LinkButton href={`/catat/makanan${q}`}>Catat makanan</LinkButton>
-        <LinkButton href={`/catat/olahraga${q}`} variant="secondary">
-          Catat olahraga
-        </LinkButton>
-      </div>
-    </section>
-  );
-}
-
 function PendingMeals({ meals }: { meals: Meal[] }) {
   const pending = meals.filter((m) => m.status !== "confirmed");
   if (!pending.length) return null;
   return (
     <Link
       href={`/makanan?id=${pending[0].id}`}
-      className="pressable flex min-h-14 items-center justify-between gap-3 rounded-[6px] border-2 border-ink bg-surface px-4 py-3"
+      className="pressable flex min-h-14 items-center justify-between gap-3 rounded-2xl border-2 border-ink bg-surface px-4 py-3"
     >
       <span>
         <span className="block font-semibold">{pending.length} makanan belum dicek</span>
@@ -192,47 +146,6 @@ function PendingMeals({ meals }: { meals: Meal[] }) {
       </span>
       <span className="font-display text-lg font-bold text-accent-ink">Cek</span>
     </Link>
-  );
-}
-
-function MealList({ meals, q }: { meals: Meal[]; q: string }) {
-  return (
-    <section aria-labelledby="makan" className="flex flex-col gap-3">
-      <div className="flex items-baseline justify-between">
-        <h2 id="makan" className="font-display text-2xl font-bold">
-          Makan
-        </h2>
-        <Link href={`/catat/makanan${q}`} className="flex min-h-11 items-center font-semibold text-accent-ink">
-          Tambah
-        </Link>
-      </div>
-      {meals.length === 0 ? (
-        <p className="text-muted">Belum ada makanan tercatat.</p>
-      ) : (
-        <ul className="flex flex-col divide-y divide-line border-y border-line">
-          {meals.map((m) => (
-            <li key={m.id}>
-              <Link href={`/makanan?id=${m.id}`} className="flex min-h-16 items-center justify-between gap-4 py-3 hover:bg-surface">
-                <span className="min-w-0">
-                  <span className="block font-semibold">
-                    {MEAL_LABEL[m.mealType]} <span className="font-normal text-muted">· {timeLabel(m.eatenAt)}</span>
-                  </span>
-                  <span className="block truncate text-sm text-muted">
-                    {m.status === "needs_manual"
-                      ? "Perlu diisi manual"
-                      : m.items.map((i) => i.name).join(", ") || m.rawText}
-                  </span>
-                </span>
-                <span className="shrink-0 text-right">
-                  <span className="numeral block text-2xl">{fmt(m.totalCalories)}</span>
-                  <span className="text-xs text-muted">{m.status === "confirmed" ? "kkal" : "belum dicek"}</span>
-                </span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      )}
-    </section>
   );
 }
 
@@ -258,7 +171,7 @@ function TrainingDue({ date, q }: { date: string; q: string }) {
         <li key={d.href}>
           <Link
             href={d.href}
-            className="pressable flex min-h-14 items-center justify-between gap-3 rounded-[6px] border-2 border-ink px-4 py-2"
+            className="pressable flex min-h-14 items-center justify-between gap-3 rounded-2xl border-2 border-ink px-4 py-2"
           >
             <span>
               <span className="block text-sm text-muted">Jadwal latihan</span>
@@ -284,9 +197,9 @@ function ExerciseList({
   onChange: () => void;
 }) {
   return (
-    <section aria-labelledby="olahraga" className="flex flex-col gap-3">
+    <section aria-labelledby="olahraga" className="card flex flex-col gap-3 p-5">
       <div className="flex items-baseline justify-between">
-        <h2 id="olahraga" className="font-display text-2xl font-bold">
+        <h2 id="olahraga" className="text-lg font-semibold">
           Olahraga
         </h2>
         <Link href={`/catat/olahraga${q}`} className="flex min-h-11 items-center font-semibold text-accent-ink">
@@ -297,7 +210,7 @@ function ExerciseList({
       {exercises.length === 0 ? (
         <p className="text-muted">Belum ada olahraga tercatat.</p>
       ) : (
-        <ul className="flex flex-col divide-y divide-line border-y border-line">
+        <ul className="flex flex-col divide-y divide-line">
           {exercises.map((e) => (
             <ExerciseRow key={e.id} e={e} onChange={onChange} />
           ))}
@@ -367,10 +280,10 @@ function WeightRow({ weight, q }: { weight: WeightLog | null; q: string }) {
     : [];
   const compHref = `/catat/berat${q ? `${q}&` : "?"}komposisi=1`;
   return (
-    <section aria-labelledby="berat" className="flex flex-col gap-2 border-y border-line py-3">
+    <section aria-labelledby="berat" className="card flex flex-col gap-2 p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h2 id="berat" className="font-display text-2xl font-bold">
+          <h2 id="berat" className="text-lg font-semibold">
             Berat badan
           </h2>
           {weight ? (

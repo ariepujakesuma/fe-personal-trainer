@@ -3,24 +3,39 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
-import { useApi } from "@/lib/api";
 import { useSession } from "@/lib/session";
-import type { ProjectionInput } from "@/lib/types";
 import { LoadingState } from "./ui";
 
-type NavItem = { href: string; label: string; primary?: boolean };
+type NavItem = { href: string; label: string; icon: ReactNode; primary?: boolean };
+
+const svg = (d: ReactNode) => (
+  <svg viewBox="0 0 24 24" className="size-6" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    {d}
+  </svg>
+);
 
 const NAV: NavItem[] = [
-  { href: "/hari-ini", label: "Hari ini" },
-  { href: "/catat", label: "Catat", primary: true },
-  { href: "/latihan", label: "Latihan" },
-  { href: "/profil", label: "Profil" },
+  { href: "/hari-ini", label: "Hari ini", icon: svg(<path d="M4 10.5 12 4l8 6.5V19a1 1 0 0 1-1 1h-4.5v-5h-5v5H5a1 1 0 0 1-1-1z" />) },
+  { href: "/proyeksi", label: "Proyeksi", icon: svg(<path d="M4 19h16M5 15l4-4 3 3 7-7M15 7h4v4" />) },
+  { href: "/catat", label: "Catat", primary: true, icon: svg(<path d="M12 5v14M5 12h14" />) },
+  {
+    href: "/latihan",
+    label: "Latihan",
+    icon: svg(<path d="M3 10v4M6 7v10M18 7v10M21 10v4M6 12h12" />),
+  },
+  {
+    href: "/profil",
+    label: "Profil",
+    icon: svg(
+      <>
+        <circle cx="12" cy="8.5" r="3.5" />
+        <path d="M5 20c1.2-3.5 4-5 7-5s5.8 1.5 7 5" />
+      </>,
+    ),
+  },
 ];
-/** Shown first once the projection has enough data (body fat + a logged day). */
-const PROJECTION: NavItem = { href: "/", label: "Proyeksi" };
 
 function isActive(pathname: string, href: string) {
-  if (href === "/") return pathname === "/";
   // Summary and meal review are opened from Hari ini, so that tab stays lit.
   if (href === "/hari-ini") return ["/hari-ini", "/summary", "/makanan"].some((p) => pathname.startsWith(p));
   return pathname.startsWith(href);
@@ -32,8 +47,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const onboarding = pathname.startsWith("/onboarding");
-  const { data: projection } = useApi<ProjectionInput>(session?.hasProfile ? "/dashboard/projection" : null);
-  const nav = projection?.ready ? [PROJECTION, ...NAV] : NAV;
 
   useEffect(() => {
     if (session === null) router.replace("/login");
@@ -56,29 +69,34 @@ export function AppShell({ children }: { children: ReactNode }) {
       {!onboarding && (
         <nav
           aria-label="Navigasi utama"
-          className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-paper pb-[env(safe-area-inset-bottom,0px)]"
+          className="fixed inset-x-0 bottom-0 z-10 rounded-t-3xl bg-surface pb-[env(safe-area-inset-bottom,0px)] shadow-[0_-8px_24px_-12px_rgb(21_22_26/0.18)] dark:border-t dark:border-line"
         >
-          <ul
-            className="mx-auto grid max-w-lg gap-1 px-3 py-2"
-            style={{ gridTemplateColumns: `repeat(${nav.length}, minmax(0, 1fr))` }}
-          >
-            {nav.map((item) => {
+          <ul className="mx-auto grid max-w-lg grid-cols-5 items-end px-2 pt-2 pb-1">
+            {NAV.map((item) => {
               const active = isActive(pathname, item.href);
               return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`pressable no-select flex min-h-12 items-center justify-center rounded-[6px] font-display [transition-property:transform] ${nav.length > 4 ? "text-base" : "text-lg"} font-bold leading-none ${
-                      item.primary
-                        ? "bg-accent text-on-accent"
-                        : active
-                          ? "bg-ink text-paper"
-                          : "text-muted hover:text-ink"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
+                <li key={item.href} className="flex justify-center">
+                  {item.primary ? (
+                    <Link
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      aria-label={item.label}
+                      className="pressable -mt-7 flex size-16 items-center justify-center rounded-full bg-accent text-on-accent shadow-[0_8px_20px_-6px_rgb(240_83_18/0.6)] ring-4 ring-paper"
+                    >
+                      {item.icon}
+                    </Link>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`pressable no-select flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-xs font-semibold ${
+                        active ? "text-accent-ink" : "text-muted hover:text-ink"
+                      }`}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </Link>
+                  )}
                 </li>
               );
             })}
