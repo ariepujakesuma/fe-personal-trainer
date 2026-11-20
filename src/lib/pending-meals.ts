@@ -53,6 +53,10 @@ export function startMealAnalysis(opts: {
         duration: 8000,
         action: { label: "Cek", onClick: () => opts.onOpen(meal.id) },
       });
+      // The server stores photos only when its Blob storage is set up; say so instead of failing silently.
+      if (opts.form.get("photo") && !meal.photoUrl) {
+        toast.warning("Kalori sudah dihitung, tapi fotonya tidak tersimpan di server.", { duration: 8000 });
+      }
     })
     .catch((err: unknown) => {
       const message = errorMessage(err);
