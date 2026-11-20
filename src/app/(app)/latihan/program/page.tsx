@@ -45,6 +45,7 @@ function Picker({ catalog, plan }: { catalog: Catalog; plan: TrainingPlan | null
         },
       });
       toast.success("Program latihan tersimpan");
+      setBusy(false); // the page stays alive (hidden) after navigating
       router.push("/latihan");
     } catch (err) {
       setError(errorMessage(err));

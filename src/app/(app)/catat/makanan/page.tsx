@@ -61,6 +61,14 @@ function CatatMakanan() {
       label: text.trim() ? text.trim().slice(0, 40) : MEAL_LABEL[mealType].toLowerCase(),
       onOpen: (id) => router.push(`/makanan?id=${id}`),
     });
+    // Next.js keeps this page alive (hidden) after navigating; leave a fresh form for the next meal.
+    setFile(null);
+    setPreview(null);
+    setText("");
+    setError(null);
+    setMealType(mealTypeNow());
+    setBusy(false);
+    if (inputRef.current) inputRef.current.value = "";
     router.push(`/hari-ini${q}`);
   }
 

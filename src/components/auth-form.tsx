@@ -28,6 +28,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       const body = Object.fromEntries(form.entries());
       const next = await api<Session>(`/auth/${mode}`, { body });
       setSession(next);
+      setBusy(false); // the page stays alive (hidden), and shows again after signing out
     } catch (err) {
       setError(errorMessage(err));
       setBusy(false);

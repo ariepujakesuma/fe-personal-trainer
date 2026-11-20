@@ -130,6 +130,7 @@ function Session({ s, date, q }: { s: NonNullable<TrainingToday["strength"]>; da
         localStorage.removeItem(key);
       } catch {}
       toast.success(`${s.title} tercatat. Target sesi berikutnya sudah diperbarui.`);
+      setBusy(false); // the page stays alive (hidden) after navigating
       router.push(`/latihan${q}`);
     } catch (err) {
       setError(errorMessage(err));

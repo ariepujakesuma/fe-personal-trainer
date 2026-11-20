@@ -90,6 +90,18 @@ function Olahraga() {
         },
       });
       toast.success(`${log.name}: ${fmt(log.caloriesBurned)} kkal terbakar`);
+      // The page stays alive (hidden) after navigating; leave an empty form for the next one.
+      setStory("");
+      setTypeId("");
+      setName("");
+      setDuration("");
+      setDistance("");
+      setIntensity("moderate");
+      setRawText(null);
+      setAiName(null);
+      setSource("manual");
+      setError(null);
+      setBusy(false);
       router.push(`/hari-ini${q}`);
     } catch (err) {
       setError(errorMessage(err));

@@ -52,6 +52,9 @@ export default function ImporPage() {
       const first = dateLabel(prepared.rows[0].date);
       const last = dateLabel(prepared.rows.at(-1)!.date);
       toast.success(`${fmt(res.imported)} hari diimpor (${first === last ? first : `${first} sampai ${last}`})`);
+      setFile(null);
+      setTargets([]);
+      setBusy(false); // the page stays alive (hidden) after navigating
       router.push("/catat/berat");
     } catch (err) {
       toast.error(errorMessage(err));

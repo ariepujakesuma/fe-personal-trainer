@@ -165,6 +165,7 @@ function WeightForm({
       await api("/weights", { body: { date, weightKg, ...comp } });
       const filled = Object.values(comp).filter((v) => v != null).length;
       toast.success(`Berat ${fmt1(weightKg!)} kg tersimpan${filled ? ` + ${filled} data komposisi tubuh` : ""}`);
+      setBusy(false); // the page stays alive (hidden) after navigating
       onSaved();
     } catch (err) {
       if (err instanceof ApiError && err.issues?.length) {

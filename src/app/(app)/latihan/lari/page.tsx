@@ -46,6 +46,10 @@ function Lari() {
         body: { date, durationMin: Math.round(minutes), distanceKm: km, planId: run?.planId ?? null, week: run?.week ?? null },
       });
       toast.success(`Lari ${Math.round(minutes)} menit tercatat${km ? `, ${fmt1(km)} km` : ""}`);
+      // The page stays alive (hidden) after navigating; leave an empty form for the next run.
+      setDuration("");
+      setDistance("");
+      setBusy(false);
       router.push(`/latihan${q}`);
     } catch (err) {
       setError(errorMessage(err));

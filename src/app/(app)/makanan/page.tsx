@@ -128,6 +128,7 @@ function Editor({ meal }: { meal: Meal }) {
       });
       if (!confirmed) await api(`/meals/${meal.id}/confirm`, { method: "POST" });
       toast.success(`${MEAL_LABEL[mealType]} tersimpan: ${fmt(totals.calories)} kkal`);
+      setBusy(false); // the page stays alive (hidden) after navigating
       router.push(home);
     } catch (err) {
       setError(errorMessage(err));
@@ -141,6 +142,8 @@ function Editor({ meal }: { meal: Meal }) {
     try {
       await api(`/meals/${meal.id}`, { method: "DELETE" });
       toast.success("Makanan dihapus");
+      setDeleting(false);
+      setConfirmDelete(false);
       router.push(home);
     } catch (err) {
       toast.error(errorMessage(err));

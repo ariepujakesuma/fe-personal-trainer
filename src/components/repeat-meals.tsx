@@ -32,6 +32,7 @@ export function RepeatMeals({ date, mealType, onLogged }: { date: string; mealTy
               .catch((err) => toast.error(errorMessage(err))),
         },
       });
+      setBusyId(null);
       onLogged();
     } catch (err) {
       toast.error(errorMessage(err));
