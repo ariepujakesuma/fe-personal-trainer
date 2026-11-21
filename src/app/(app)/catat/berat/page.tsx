@@ -9,7 +9,8 @@ import { Button, ErrorState, Field, Input, LoadingState, PageHeader } from "@/co
 import { ApiError, api, errorMessage, useApi } from "@/lib/api";
 import { BODY_COMP, compBrief, hasBodyComp, parseReading, readingError } from "@/lib/body-comp";
 import { dateLabel, dayLabel, fmt1, isDate, shiftDate, todayLocal } from "@/lib/format";
-import type { ProjectionInput, WeightLog } from "@/lib/types";
+import { compressImage } from "@/lib/image";
+import type { BodyComp, ProjectionInput, WeightLog } from "@/lib/types";
 
 export default function BeratPage() {
   return (
@@ -113,6 +114,49 @@ function WeightForm({
     return Math.round((v / weightKg) * 1000) / 10;
   };
   const compRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [scanning, setScanning] = useState(false);
+  const [scanned, setScanned] = useState<{ keys: string[]; date: string | null } | null>(null);
+
+  /** Reads a scale-app screenshot and fills the form; the user checks it and saves. */
+  async function scan(file: File) {
+    setScanning(true);
+    try {
+      const form = new FormData();
+      // Tall screenshots keep enough pixels for the small print.
+      form.set("photo", await compressImage(file, 2048, 0.85), "scan.jpg");
+      const res = await api<{ weightKg: number | null; values: Partial<BodyComp>; date: string | null }>(
+        "/weights/scan",
+        { body: form },
+      );
+      const el = formRef.current?.elements;
+      const set = (key: string, v: number) => {
+        const input = el?.namedItem(key);
+        if (input instanceof HTMLInputElement) input.value = String(v).replace(".", ",");
+      };
+      const keys: string[] = [];
+      if (res.weightKg != null) {
+        set("weightKg", res.weightKg);
+        setWeightText(String(res.weightKg).replace(".", ","));
+        keys.push("weightKg");
+      }
+      for (const [k, v] of Object.entries(res.values)) {
+        if (v == null) continue;
+        set(k, v);
+        keys.push(k);
+      }
+      setAltOn({}); // everything comes back in the form's own units
+      setErrors({});
+      setShowComp(true);
+      setScanned({ keys, date: res.date });
+      toast.success(`${keys.length} data terisi dari screenshot. Cek dulu, lalu Simpan.`);
+    } catch (err) {
+      toast.error(errorMessage(err));
+    } finally {
+      setScanning(false);
+    }
+  }
+  const filled = (key: string) => (scanned?.keys.includes(key) ? "ring-2 ring-accent/60" : "");
 
   // Arriving from "+ Komposisi tubuh": go straight to the first reading.
   useEffect(() => {
@@ -166,6 +210,7 @@ function WeightForm({
       const filled = Object.values(comp).filter((v) => v != null).length;
       toast.success(`Berat ${fmt1(weightKg!)} kg tersimpan${filled ? ` + ${filled} data komposisi tubuh` : ""}`);
       setBusy(false); // the page stays alive (hidden) after navigating
+      setScanned(null);
       onSaved();
     } catch (err) {
       if (err instanceof ApiError && err.issues?.length) {
@@ -181,7 +226,42 @@ function WeightForm({
   const value = (k: keyof WeightLog) => (current?.[k] != null ? String(current[k]).replace(".", ",") : "");
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+    <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
+      <div className="card flex flex-col gap-2 p-4">
+        <span className="font-semibold">Isi otomatis dari screenshot</span>
+        <span className="text-sm text-muted">
+          Screenshot hasil timbangan pintar (Zepp, Renpho, InBody, dll.). Angkanya dibaca AI dan diisikan ke form.
+        </span>
+        <label
+          className={`pressable inline-flex min-h-12 cursor-pointer items-center justify-center gap-2 rounded-full border border-line bg-surface px-5 font-semibold has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-accent ${
+            scanning ? "pointer-events-none opacity-60" : ""
+          }`}
+        >
+          {scanning ? "Membaca screenshot…" : "Pilih screenshot"}
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            disabled={scanning}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              e.target.value = "";
+              if (f) void scan(f);
+            }}
+          />
+        </label>
+        {scanned && (
+          <p role="status" className="text-sm">
+            {scanned.keys.length} data terisi (ditandai garis oranye). Periksa angkanya sebelum menyimpan.
+            {scanned.date && scanned.date !== date && (
+              <span className="block text-muted">
+                Screenshot ini tertanggal {dateLabel(scanned.date)}, tapi akan disimpan untuk {dateLabel(date)}.
+              </span>
+            )}
+          </p>
+        )}
+      </div>
+
       <Field label={`Berat ${dayLabel(date).toLowerCase()}`} htmlFor="weightKg" error={errors.weightKg}>
         <UnitInput
           id="weightKg"
@@ -195,7 +275,7 @@ function WeightForm({
             setWeightText(e.target.value);
             if (errors.weightKg) setErrors((x) => ({ ...x, weightKg: null }));
           }}
-          className="numeral h-16 text-4xl"
+          className={`numeral h-16 text-4xl ${filled("weightKg")}`}
         />
       </Field>
 
@@ -283,6 +363,7 @@ function WeightForm({
                   }}
                   aria-invalid={errors[f.key] ? true : undefined}
                   aria-describedby={errors[f.key] ? `${f.key}-error` : undefined}
+                  className={filled(f.key)}
                 />
                 {altOn[f.key] && !errors[f.key] && altText[f.key] && (
                   <p className="text-sm text-muted">

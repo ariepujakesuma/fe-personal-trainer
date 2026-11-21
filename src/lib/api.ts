@@ -37,6 +37,9 @@ function invalidateDayData(changedPath: string) {
   );
 }
 
+/** POSTs that only read (nothing is saved), so cached screens stay as they are. */
+const READ_ONLY_POSTS = /^\/weights\/scan$/;
+
 export async function api<T>(path: string, init: { method?: string; body?: Body } = {}): Promise<T> {
   const headers: Record<string, string> = {};
   const token = getSession()?.token;
@@ -59,7 +62,7 @@ export async function api<T>(path: string, init: { method?: string; body?: Body 
 
   if (res.status === 401 && token) setSession(null);
   const method = init.method ?? (init.body ? "POST" : "GET");
-  if (res.ok && method !== "GET") invalidateDayData(path);
+  if (res.ok && method !== "GET" && !READ_ONLY_POSTS.test(path)) invalidateDayData(path);
   if (res.status === 204) return undefined as T;
 
   const data: unknown = await res.json().catch(() => null);
