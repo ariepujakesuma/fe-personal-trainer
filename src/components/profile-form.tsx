@@ -14,12 +14,16 @@ const GOALS: { value: Goal; label: string; hint: string }[] = [
   { value: "gain", label: "Naik berat badan", hint: "Surplus 300 kkal" },
 ];
 
+/**
+ * Daily movement only. Workouts are logged on their own and their calories added to the day's
+ * target, so counting them here too would count them twice.
+ */
 const ACTIVITY: { value: ActivityLevel; label: string }[] = [
-  { value: "sedentary", label: "Jarang bergerak (kerja duduk, tanpa olahraga)" },
-  { value: "light", label: "Ringan (olahraga 1-3x seminggu)" },
-  { value: "moderate", label: "Sedang (olahraga 3-5x seminggu)" },
-  { value: "active", label: "Aktif (olahraga 6-7x seminggu)" },
-  { value: "very_active", label: "Sangat aktif (latihan berat / kerja fisik)" },
+  { value: "sedentary", label: "Kebanyakan duduk (kerja kantor, jarang jalan)" },
+  { value: "light", label: "Cukup bergerak (sering jalan atau berdiri)" },
+  { value: "moderate", label: "Banyak bergerak (berdiri seharian, kerja lapangan)" },
+  { value: "active", label: "Kerja fisik (angkat barang, kurir, bangunan)" },
+  { value: "very_active", label: "Kerja fisik berat sepanjang hari" },
 ];
 
 export function ProfileForm({
@@ -117,8 +121,12 @@ export function ProfileForm({
         />
       </Field>
 
-      <Field label="Aktivitas harian" htmlFor="activityLevel">
-        <Select id="activityLevel" name="activityLevel" defaultValue={p?.activityLevel ?? "light"}>
+      <Field
+        label="Aktivitas harian di luar olahraga"
+        htmlFor="activityLevel"
+        hint="Olahraga tidak dihitung di sini. Catat olahraganya, dan kalorinya ditambahkan ke target hari itu."
+      >
+        <Select id="activityLevel" name="activityLevel" defaultValue={p?.activityLevel ?? "sedentary"}>
           {ACTIVITY.map((a) => (
             <option key={a.value} value={a.value}>
               {a.label}
