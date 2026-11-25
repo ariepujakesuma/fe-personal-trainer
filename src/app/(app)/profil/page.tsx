@@ -41,7 +41,7 @@ export default function ProfilPage() {
         },
       });
       await mutate(res, { revalidate: false });
-      toast.success(enabled ? "Reminder email aktif" : "Reminder email dimatikan");
+      toast.success(enabled ? "Email harian aktif" : "Email harian dimatikan");
     } catch (err) {
       setReminder(!enabled);
       toast.error(errorMessage(err));
@@ -99,9 +99,10 @@ export default function ProfilPage() {
             </h2>
             <label className="flex min-h-11 cursor-pointer items-center justify-between gap-4">
               <span>
-                <span className="block font-semibold">Reminder email</span>
+                <span className="block font-semibold">Email harian</span>
                 <span className="text-sm text-muted">
-                  Jam 20:00 ke {session?.user.email ?? "email akun"} kalau hari itu belum ada catatan.
+                  Ke {session?.user.email ?? "email akun"}: summary AI sekitar jam 21:00, dan pengingat jam 20:00 kalau
+                  hari itu belum ada catatan.
                 </span>
               </span>
               <input
